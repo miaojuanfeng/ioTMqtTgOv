@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.warning.mapper.GovPushStrategyMapper">
+
+    <sql id="Base_Column_List">
+        id,push_id,strategy_id,strategy_name,strategy_type_name,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询推送规则_相关策略列表 只能选择定时自动执行策略、条件触发执行策略-->
+    <select id="selectPageList" resultType="com.krt.gov.warning.entity.GovPushStrategy">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_push_strategy where strategy_type_code != "1"
+            <if test="strategyName !=null and strategyName!=''">
+                    and strategy_name like concat('%',#{strategyName},'%')
+            </if>
+            <if test="strategyTypeName !=null and strategyTypeName!=''">
+                    and strategy_type_name like concat('%',#{strategyTypeName},'%')
+            </if>
+    </select>
+
+    <!--删除一条策略-->
+    <delete id="deleteStrategyById" parameterType="java.lang.String">
+        delete from gov_push_strategy where push_id = #{pushId} and strategy_id = #{strategyId}
+    </delete>
+
+</mapper>
+

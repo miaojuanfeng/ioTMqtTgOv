@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.strategy.mapper.DeviceStrategyTimeMapper">
+
+    <sql id="Base_Column_List">
+        id,strategy_id,s_time,e_time,inserter,insert_time,updater,update_time
+    </sql>
+
+    <select id="selectByStrategyId" resultType="java.util.Map">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_device_strategy_time where strategy_id=#{strategyId}
+    </select>
+
+    <delete id="deleteByStrategyId">
+        delete from gov_device_strategy_time where strategy_id = #{strategyId}
+    </delete>
+</mapper>

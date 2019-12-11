@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.strategy.mapper.DeviceStrategyLinkMapper">
+
+    <sql id="Base_Column_List">
+        id,strategy_id,device_id,device_name,action,action_details,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询设备动作策略_关联设备列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.strategy.entity.DeviceStrategyLink">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_device_strategy_link where 1=1
+    </select>
+
+    <select id="selectByStrategyId" resultType="com.krt.gov.strategy.entity.DeviceStrategyLink">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_device_strategy_link where 1=1 and strategy_id = #{strategyId}
+    </select>
+
+    <delete id="deleteByStrategyId">
+        delete from gov_device_strategy_link where strategy_id = #{strategyId}
+    </delete>
+
+    <!-- 根据策略id 查询deviceId -->
+    <select id="selectDeviceById" resultType="java.util.Map" parameterType="integer">
+        select gd.device_id, gdsl.action, gd.type, gd.id as dId
+        from gov_device_strategy_link gdsl
+        inner join gov_device_strategy gds on gdsl.strategy_id = gds.id
+        inner join gov_device gd on gdsl.device_id = gd.id
+        where gds.strategy_type_code = 2 and gdsl.strategy_id = #{id}
+    </select>
+
+</mapper>
+

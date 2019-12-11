@@ -1,0 +1,153 @@
+<#include "/common/layoutForm.ftl">
+<@header></@header>
+<style type="text/css">
+    .form-horizontal .row {
+        margin-right: 0 !important;
+    }
+</style>
+<@body>
+    <div class="wrapper">
+        <section class="content">
+            <div class="row">
+                <div class="col-md-12">
+                    <form role="form" class="form-horizontal krt-form krt-width-form" id="krtForm">
+                        <div class="box-body">
+                            <div class="row">
+                                <div class="form-group">
+                                    <label for="attrTypeCode" class="control-label col-sm-4">预警设备类型：</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-control select2" style="width: 100%" id="attrTypeCode" name="attrTypeCode" onchange="attrTypeCodeOnChange()">
+                                            <option value="">==请选择==</option>
+                                            <option value="term_appli_equip">终端应用设备</option>
+                                            <option value="temp_humi_sensor">温湿度传感器</option>
+                                            <option value="other_office_equip">其他办公设备</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group">
+                                    <label for="pname" class="control-label col-sm-4">预警类型：</label>
+                                    <div class="col-sm-8" id="warningTypeCode">
+                                        <span style="color:red">请先选择预警设备类型</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group">
+                                    <label for="pname" class="control-label col-sm-4">
+                                        短信模板：
+                                    </label>
+                                    <div class="col-sm-8">
+                                        <textarea rows="4" name="smsMode" class="form-control"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group">
+                                    <label for="pname" class="control-label col-sm-4">预警时间：</label>
+                                    <div class="col-sm-8">
+                                        <input type="checkbox" name="week" class="icheck" value="1">周一&nbsp;&nbsp;
+                                        <input type="checkbox" name="week" class="icheck" value="2">周二&nbsp;&nbsp;
+                                        <input type="checkbox" name="week" class="icheck" value="3">周三&nbsp;&nbsp;
+                                        <input type="checkbox" name="week" class="icheck" value="4">周四&nbsp;&nbsp;
+                                        <input type="checkbox" name="week" class="icheck" value="5">周五&nbsp;&nbsp;
+                                        <input type="checkbox" name="week" class="icheck" value="6">周六&nbsp;&nbsp;
+                                        <input type="checkbox" name="week" class="icheck" value="7">周天&nbsp;&nbsp;
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group">
+                                    <label for="pname" class="control-label col-sm-4">节假日预警：</label>
+                                    <div class="col-sm-8">
+                                        <input type="radio" name="isHoliday" class="icheck" value="1" checked>是
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <input type="radio" name="isHoliday" class="icheck" value="0">否
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <input type="radio" name="isHoliday" class="icheck" value="2">仅节假日执行
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group">
+                                    <label for="pname" class="control-label col-sm-4">状态：</label>
+                                    <div class="col-sm-8">
+                                        <input type="radio" name="status" class="icheck" value="1">启用
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <input type="radio" name="status" class="icheck" value="2" checked>禁用
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</@body>
+<@footer>
+<script type="text/javascript">
+    var validateForm;
+    $(function () {
+        //验证表单
+        validateForm = $("#krtForm").validate({});
+
+    });
+
+    //提交
+    function doSubmit() {
+        krt.ajax({
+            type: "POST",
+            url: "${basePath}/gov/warning/govDeviceWarning/insert",
+            data: $('#krtForm').serialize(),
+            validateForm: validateForm,
+            success: function (rb) {
+                krt.layer.msg(rb.msg);
+                if (rb.code === 200) {
+                    var index = krt.layer.getFrameIndex(); //获取窗口索引
+                    krt.table.reloadTable();
+                    krt.layer.close(index);
+                }
+            }
+        });
+    }
+
+    // 预警设备类型
+    function attrTypeCodeOnChange(){
+        var code = $("#attrTypeCode").val();
+        if (code != null){
+            $.ajax({
+                url: "${basePath}/gov/warning/govDeviceWarning/selectWarnTypeByCode",
+                type: "post",
+                data: {"code": code},
+                success: function (res) {
+                    $("#warningTypeCode").html("");
+                    for (var i=0; i<res.length; i++) {
+                        if (res[i].code == "cpu"){
+                            $("#warningTypeCode").append('<input type="checkbox" name="warningTypeCode" onclick="checkboxCpuClick(this)"' +
+                                    'class="icheck" value="'+ res[i].code+'">'+res[i].name+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+                        }else{
+                            $("#warningTypeCode").append('<input type="checkbox" name="warningTypeCode" class="icheck" ' +
+                                    'value="'+ res[i].code+'">'+res[i].name+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function checkboxCpuClick(checkbox){
+        if ( checkbox.checked == true){
+            $("#warningTypeCode").append('<div id="checkboxCpuClick">' +
+                    'CPU使用率超过<input style="width:60px;" type="text" id="cpu" name="cpu">%' +
+                    '&nbsp;/内存使用率超过<input style="width:60px;" type="text" id="rom" name="rom">%' +
+                    '&nbsp;/硬盘使用率超过<input style="width:60px;" type="text" id="ram" name="ram">%</div>');
+        }else{
+            $("#checkboxCpuClick").remove();
+        }
+    }
+
+</script>
+</@footer>
+

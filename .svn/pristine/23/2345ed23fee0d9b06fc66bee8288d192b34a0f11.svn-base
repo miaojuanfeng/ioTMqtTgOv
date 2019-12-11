@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <artifactId>krt</artifactId>
+        <groupId>com.krt</groupId>
+        <version>${krt.version}</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>gov-warning</artifactId>
+    <name>gov-warning</name>
+    <url>http://www.cnkrt.com</url>
+    <description>预警推送管理模块</description>
+
+    <dependencies>
+        <!-- 公共工具 -->
+        <dependency>
+            <groupId>com.krt</groupId>
+            <artifactId>krt-common</artifactId>
+            <version>${krt.version}</version>
+        </dependency>
+        <!-- 公共依赖文件-->
+        <dependency>
+            <groupId>com.krt</groupId>
+            <artifactId>gov-common</artifactId>
+            <version>${krt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.krt</groupId>
+            <artifactId>gov-device</artifactId>
+            <version>${krt.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <!--<build>-->
+        <!--<finalName>krt</finalName>-->
+        <!--<plugins>-->
+            <!--<plugin>-->
+                <!--<groupId>org.springframework.boot</groupId>-->
+                <!--<artifactId>spring-boot-maven-plugin</artifactId>-->
+            <!--</plugin>-->
+        <!--</plugins>-->
+    <!--</build>-->
+
+</project>

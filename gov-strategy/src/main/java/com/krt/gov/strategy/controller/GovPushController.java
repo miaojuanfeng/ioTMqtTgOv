@@ -1,0 +1,267 @@
+package com.krt.gov.strategy.controller;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.krt.common.annotation.KrtLog;
+import com.krt.common.base.BaseController;
+import com.krt.common.bean.DataTable;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.session.SessionUser;
+import com.krt.common.util.ShiroUtils;
+import com.krt.gov.strategy.entity.GovPush;
+import com.krt.gov.strategy.entity.GovPushStaff;
+import com.krt.gov.strategy.entity.GovPushStrategy;
+import com.krt.gov.strategy.service.IGovPushService;
+import com.krt.gov.strategy.service.IGovPushStaffService;
+import com.krt.gov.strategy.service.IGovPushStrategyService;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.validation.constraints.NotNull;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 推送规则设置控制层
+ *
+ * @author 郭明德
+ * @version 1.0
+ * @date 2019年07月13日
+ */
+@Controller
+public class GovPushController extends BaseController {
+
+    @Autowired
+    private IGovPushService govPushService;
+
+    @Autowired
+    private IGovPushStaffService govPushStaffService;
+
+    @Autowired
+    private IGovPushStrategyService govPushStrategyService;
+
+    /**
+     * 推送规则设置管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovPush:govPush:list")
+    @GetMapping("gov/strategy/govPush/list")
+    public String list() {
+        return "strategy/govPush/list";
+    }
+
+    /**
+     * 推送规则设置管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("GovPush:govPush:list")
+    @PostMapping("gov/strategy/govPush/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+
+        if (sessionUser.isAdmin()) {
+            IPage page = govPushService.selectPageList(para);
+            return DataTable.ok(page);
+        } else {
+            para.put("area", sessionUser.getArea());
+            IPage page = govPushService.selectPageList(para);
+            return DataTable.ok(page);
+        }
+    }
+
+    /**
+     * 新增推送规则设置页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovPush:govPush:insert")
+    @GetMapping("gov/strategy/govPush/insert")
+    public String insert() {
+        return "strategy/govPush/insert";
+    }
+
+    /**
+     * 添加推送规则设置
+     *
+     * @param govPush 推送规则设置
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加推送规则设置")
+    @RequiresPermissions("GovPush:govPush:insert")
+    @PostMapping("gov/strategy/govPush/insert")
+    @ResponseBody
+    public ReturnBean insert(GovPush govPush) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+
+        if (sessionUser.isAdmin()) {
+            govPushService.insert(govPush);
+        } else {
+            govPush.setArea(sessionUser.getArea());
+            govPushService.insert(govPush);
+        }
+
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改推送规则设置页
+     *
+     * @param id 推送规则设置id
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovPush:govPush:update")
+    @GetMapping("gov/strategy/govPush/update")
+    public String update(Integer id) {
+        GovPush govPush = govPushService.selectById(id);
+        request.setAttribute("govPush", govPush);
+        return "strategy/govPush/update";
+    }
+
+    /**
+     * 修改推送规则设置
+     *
+     * @param govPush 推送规则设置
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改推送规则设置")
+    @RequiresPermissions("GovPush:govPush:update")
+    @PostMapping("gov/strategy/govPush/update")
+    @ResponseBody
+    public ReturnBean update(GovPush govPush) {
+        govPushService.updateById(govPush);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 推送规则设置页
+     *
+     * @param id 推送规则设置id
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovPush:govPush:setting")
+    @GetMapping("gov/strategy/govPush/setting")
+    public String setting(String id) {
+        // 查询所有的关联策略
+        List<GovPushStrategy> govStrategys = govPushService.selectPushStrategyById(id);
+        JSONArray jsonArray1 = JSONArray.parseArray(JSON.toJSONString(govStrategys));
+        String strategyJsonStr = jsonArray1.toJSONString();
+        // 查询所有的关联推送人员
+        List<GovPushStaff> govStaffs = govPushService.selectPushStaffById(id);
+        JSONArray jsonArray2 = JSONArray.parseArray(JSON.toJSONString(govStaffs));
+        String pushManJsonStr = jsonArray2.toJSONString();
+
+        request.setAttribute("strategyJsonStr", strategyJsonStr);
+        request.setAttribute("pushManJsonStr", pushManJsonStr);
+        request.setAttribute("pushId", id);
+        return "strategy/govPush/setting";
+    }
+
+    /**
+     * 策略规则设置
+     *
+     * @param pushId
+     * @param strategyJsonStr
+     * @param pushManJsonStr
+     * @return
+     */
+    @KrtLog("推送规则设置")
+    @RequiresPermissions("GovPush:govPush:setting")
+    @PostMapping("gov/strategy/govPush/setting")
+    @ResponseBody
+    public ReturnBean setting(String pushId, String strategyJsonStr, String pushManJsonStr) {
+        //删除所有关联策略和推送人
+        govPushStaffService.deleteStaffByPushId(pushId);
+        govPushStrategyService.deleteStrategyByPushId(pushId);
+
+        //添加策略推送人
+        if (!"".equals(pushManJsonStr)) {
+            JSONArray pushManJsonArray = JSON.parseArray(StringEscapeUtils.unescapeHtml4(pushManJsonStr));
+            List<GovPushStaff> govPushStaffs = JSONObject.parseArray(pushManJsonArray.toJSONString(), GovPushStaff.class);
+            for (GovPushStaff govPushStaff :
+                    govPushStaffs) {
+                govPushStaff.setPushId(Integer.parseInt(pushId));
+                govPushStaffService.insert(govPushStaff);
+            }
+        }
+        //添加关联策略
+        if (!"".equals(strategyJsonStr)) {
+            JSONArray strategyJsonArray = JSON.parseArray(StringEscapeUtils.unescapeHtml4(strategyJsonStr));
+            List<GovPushStrategy> govPushStrategies = JSONObject.parseArray(strategyJsonArray.toJSONString(), GovPushStrategy.class);
+            for (GovPushStrategy govPushStrategy :
+                    govPushStrategies) {
+                govPushStrategy.setPushId(Integer.parseInt(pushId));
+                govPushStrategyService.insert(govPushStrategy);
+            }
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 推送规则启用禁用设置
+     *
+     * @param id 推送规则设置id
+     */
+    @KrtLog("推送规则启用禁用设置")
+    @RequiresPermissions("GovPush:govPush:status")
+    @PostMapping("gov/strategy/govPush/status")
+    @ResponseBody
+    public ReturnBean status(@NotNull String status, @NotNull String id) {
+        govPushService.updateStatusById(status, id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除推送规则设置
+     *
+     * @param id 推送规则设置id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除推送规则设置")
+    @RequiresPermissions("GovPush:govPush:delete")
+    @PostMapping("gov/strategy/govPush/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        govPushService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除推送规则设置
+     *
+     * @param ids 推送规则设置ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除推送规则设置")
+    @RequiresPermissions("GovPush:govPush:delete")
+    @PostMapping("gov/strategy/govPush/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        govPushService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 保存策略名称和推送人员名字
+     */
+    @KrtLog("保存策略名称和推送人员名字")
+    @PostMapping("gov/strategy/govPush/saveStrategyAndStaff")
+    @ResponseBody
+    public ReturnBean saveStrategyAndStaff(String strategyName, String staffName, String pushId) {
+        govPushService.saveStrategyAndStaff(strategyName, staffName, pushId);
+        return ReturnBean.ok();
+    }
+
+}

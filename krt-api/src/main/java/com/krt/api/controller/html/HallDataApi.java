@@ -1,0 +1,156 @@
+package com.krt.api.controller.html;
+
+import com.alibaba.fastjson.JSONObject;
+import com.krt.common.annotation.KrtIgnoreAuth;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.validator.Assert;
+import com.krt.gov.device.entity.GovDevice;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.device.service.IGovDeviceTypeService;
+import com.krt.gov.group.service.IGovGroupService;
+import com.krt.gov.hall.service.IGovHallService;
+import com.krt.sys.entity.Region;
+import com.krt.sys.service.IRegionService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.*;
+
+
+/**
+ * @Author LiuRongHua
+ * @Description
+ * @Date 2019/7/25 11:46
+ **/
+@Slf4j
+@RestController
+@RequestMapping("api/hall")
+@Api(tags = "A、首页接口")
+public class HallDataApi {
+    @Autowired
+    private IGovDeviceService govDeviceService;
+
+    @Autowired
+    private IGovGroupService govGroupService;
+
+    @Autowired
+    private IGovHallService govHallService;
+
+    @Autowired
+    private IRegionService regionService;
+
+    /**
+     * 大厅总览
+     */
+    @GetMapping("overview")
+    @KrtIgnoreAuth
+    @ApiOperation(
+            value = "大厅总览 --- 测试使用",
+            notes = "菜单区域中的，大厅总览"
+    )
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "area", value = "区域编码",required = true)
+    })
+    public ReturnBean overview(String area) {
+        Assert.isBlank(area, "area不能为空");
+        JSONObject datamap = govDeviceService.selectDeviceStatus(area);
+        //温度值
+        datamap.put("temperature", 28);
+        //湿度值
+        datamap.put("humidity", 70);
+        return ReturnBean.ok(datamap);
+    }
+
+    /**
+     * 设备总览
+     */
+    @GetMapping("device")
+    @KrtIgnoreAuth
+    @ApiOperation(
+            value = "设备总览 --- 测试使用",
+            notes = "菜单区域中的，设备总览"
+    )
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "area", value = "区域编码",required = true)
+    })
+    public ReturnBean device(String area) {
+        Assert.isBlank(area, "area不能为空");
+        List list = govGroupService.selectDeviceGroupsHallData(area);
+        return ReturnBean.ok(list);
+    }
+
+    /**
+     * 楼层大厅
+     */
+    @GetMapping("hall")
+    @KrtIgnoreAuth
+    @ApiOperation(
+            value = "楼层大厅 --- 测试使用",
+            notes = "菜单区域中的，楼层大厅"
+    )
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "area", value = "区域编码",required = true)
+    })
+    public ReturnBean hall(String area) {
+        Assert.isBlank(area, "area不能为空");
+        Map map = govHallService.getHall(area);
+        return ReturnBean.ok(map);
+    }
+
+
+    /**
+     * 实时能耗变化趋势
+     */
+    @GetMapping("energy")
+    @KrtIgnoreAuth
+    @ApiOperation(
+            value = "实时能耗变化趋势 --- 测试使用",
+            notes = "菜单区域中的，实时能耗变化趋势"
+    )
+    public ReturnBean energy() {
+        /* TODO  查询数据库获取真实的数据*/
+        ArrayList<Map> list = new ArrayList();
+        Map map = new HashMap(16);
+        Integer[] integers = new Integer[]{
+                200, 300, 400, 500, 600, 700, 800, 700, 600, 500, 400, 300
+        };
+        String[] integersTime = new String[]{
+                "0-8点", "8-9点", "9-10点", "10-11点", "11-12点", "12-13点", "13-14点", "14-15点", "15-16点", "16-17点", "17-18点", "18-24点"
+        };
+        map.put("series_data", integers);
+        map.put("x_axis_data", integersTime);
+        return ReturnBean.ok(map);
+    }
+
+    /**
+     * 获取区域信息
+     */
+    @GetMapping("area")
+    @KrtIgnoreAuth
+    @ApiOperation(
+            value = "获取区域信息 --- 测试使用",
+            notes = "菜单区域中的，获取区域信息(超级管理员使用)"
+    )
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "id", value = "0获取省,依次传入id获取市,区",required = false)
+    })
+    public ReturnBean getArea(Integer id) {
+        if (id==null){
+            id=0;
+        }
+        List<Region> regionList = regionService.selectByPid(id);
+        return ReturnBean.ok(regionList);
+    }
+}

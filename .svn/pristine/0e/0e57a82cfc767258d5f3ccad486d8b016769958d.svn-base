@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.thread.mapper.TCallbackLogMapper">
+
+    <sql id="Base_Column_List">
+        id, url, data, status, inserter, insert_time, update, update_time
+    </sql>
+
+    <!-- 带参数查询回调列表日志列表 -->
+    <select id="selectPageList" resultType="map">
+        select id, url, data, status, insert_time from t_callback_log
+        where 1 = 1
+        <if test="url !=null and url!=''">
+            and url like concat('%',#{url},'%')
+        </if>
+        <if test="status !=null and status!=''">
+            and status = #{status}
+        </if>
+    </select>
+
+    <!-- 插入一条日志 -->
+    <insert id="insertByMap" parameterType="map" >
+        INSERT INTO t_callback_log(callback_id, status, insert_time)
+        VALUES (#{id}, #{status}, #{insertTime})
+    </insert>
+
+</mapper>

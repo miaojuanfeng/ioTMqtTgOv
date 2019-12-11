@@ -1,0 +1,34 @@
+package com.krt.gov.hall.mapper;
+
+import com.krt.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.krt.gov.hall.entity.GovHall;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 大厅映射层
+ *
+ * @author 刘威
+ * @version 1.0
+ * @date 2019年10月11日
+ */
+@Mapper
+public interface GovHallMapper extends BaseMapper<GovHall>{
+
+    /**
+     * 查询数据字典中的楼层信息
+     * @param type
+     * @return
+     */
+    List<Map> getFloorInfo(@Param("type") String type);
+
+    /**
+     * 根据地域查大厅
+     * @param area
+     * @return
+     */
+    List<GovHall> selectByArea(@Param("area") String area);
+}

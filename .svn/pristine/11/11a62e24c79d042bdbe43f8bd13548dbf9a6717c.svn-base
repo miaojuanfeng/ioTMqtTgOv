@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.hall.mapper.GovHallMapper">
+
+    <sql id="Base_Column_List">
+        id,name,area,floor_code,floor_name,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询大厅列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.hall.entity.GovHall">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_hall where 1=1
+        <if test="area !=null and area!=''">
+            and area = #{area}
+        </if>
+        <if test="name !=null and name!=''">
+            and name like concat('%',#{name},'%')
+        </if>
+    </select>
+
+    <!--查询数据字典中的楼层信息-->
+    <select id="getFloorInfo" resultType="map" parameterType="java.lang.String">
+        select id,type,pid,code,name,remark,sort from sys_dic where type = #{type}
+    </select>
+
+    <select id="selectByArea" resultType="com.krt.gov.hall.entity.GovHall">
+        select id,name,floor_name
+        from gov_hall where 1=1
+        <if test="area !=null and area!=''">
+            and area = #{area}
+        </if>
+    </select>
+</mapper>
+

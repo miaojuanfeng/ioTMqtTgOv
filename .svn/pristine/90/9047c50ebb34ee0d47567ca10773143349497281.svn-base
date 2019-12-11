@@ -1,0 +1,375 @@
+<#include "/common/layoutForm.ftl" />
+<@header>
+
+</@header>
+<@body>
+<div class="wrapper">
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <form role="form" class="form-horizontal krt-form" id="krtForm">
+                    <div class="box-body">
+                        <!--设备名称-->
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="deviceBtn" class="control-label col-sm-2">设备名称：</label>
+                                <button title="添加" type="button" id="deviceBtn" data-placement="left"
+                                        data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="deviceTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">序号</th>
+                                            <th width="20%">设备名称</th>
+                                            <th width="40%">所属区域</th>
+                                            <th width="20%">操作</th>
+                                        </tr>
+                                        <#list govDevices as device>
+                                            <tr>
+                                                <th>${device.id}</th>
+                                                <th>${device.deviceName}</th>
+                                                <th>${device.deviceArea}</th>
+                                                <th>
+                                                    <button class='btn btn-xs btn-danger deviceDelBtn'
+                                                            rid='${device.deviceId}'>
+                                                        <i class='fa fa-trash fa-btn'></i>删除
+                                                    </button>
+                                                </th>
+                                            </tr>
+                                        </#list>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <!--关联推送人-->
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="staffBtn" class="control-label col-sm-2">关联推送人：</label>
+                                <button title="添加" type="button" id="staffBtn" data-placement="left"
+                                        data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="staffTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">序号</th>
+                                            <th width="20%">姓名</th>
+                                            <th width="30%">手机号</th>
+                                            <th width="10%">职务</th>
+                                            <th width="20%">操作</th>
+                                        </tr>
+                                        <#list govStaffs as staff>
+                                            <tr>
+                                                <th>${staff.id}</th>
+                                                <th class="staffName">${staff.staffName}</th>
+                                                <th>${staff.staffPhone}</th>
+                                                <th>${staff.job}</th>
+                                                <th>
+                                                    <button class='btn btn-xs btn-warning staffModBtn'
+                                                            rid='${staff.staffUuid}'>
+                                                        <i class='fa fa-edit fa-btn'></i>修改
+                                                    </button>
+                                                    <button class='btn btn-xs btn-danger staffDelBtn'
+                                                            rid='${staff.staffUuid}'>
+                                                        <i class='fa fa-trash fa-btn'></i>删除
+                                                    </button>
+                                                </th>
+                                            </tr>
+                                        </#list>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <!--预警时间段-->
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="timeBtn" class="control-label col-sm-2">添加预警时间段：</label>
+                                <button title="添加" type="button" id="timeBtn" data-placement="left"
+                                        data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="timeTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">序号</th>
+                                            <th width="20%">开始时间</th>
+                                            <th width="30%">结束时间</th>
+                                            <th width="20%">操作</th>
+                                        </tr>
+                                        <#list govTimes as time>
+                                            <tr>
+                                                <th>${time.id}</th>
+                                                <th>${time.sTime}</th>
+                                                <th>${time.fTime}</th>
+                                                <th>
+                                                    <button class='btn btn-xs btn-danger timeDelBtn'
+                                                            sid='${time.sTime}' fid='${time.fTime}'>
+                                                        <i class='fa fa-trash fa-btn'></i>删除
+                                                    </button>
+                                                </th>
+                                            </tr>
+                                        </#list>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+</@body>
+<@footer>
+<script type="text/javascript">
+    var validateForm;
+    $(function () {
+        //验证表单
+        validateForm = $("#krtForm").validate({});
+
+    });
+
+    //提交
+    function doSubmit() {
+        var linkNum = $("#deviceTable button").length;
+        var warnId = ${warnId};
+        var staffName = "";
+        var staffObj = $("#staffTable .staffName");
+        var len = staffObj.length;
+
+        for (var i=0; i<len; i++){
+            staffName += staffObj.eq(i).html();
+            if (i <len-1){
+                staffName +=",";
+            }
+        }
+        krt.ajax({
+            type: "POST",
+            url: "${basePath}/gov/warning/govDeviceWarning/saveDevAndStaff",
+            data: {"linkNum":linkNum,"staffName":staffName,"warnId":warnId},
+            validateForm: validateForm,
+            success: function (rb) {
+                krt.layer.msg(rb.msg);
+                if (rb.code === 200) {
+                    var index = krt.layer.getFrameIndex(); //获取窗口索引
+                    krt.table.reloadTable();
+                    krt.layer.close(index);
+                }
+            }
+        });
+    }
+
+    // 关联设备
+    $("#deviceBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "添加关联设备",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govDevice/list",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var radio = layero.find("iframe")[0].contentWindow.$('input[type="checkbox"]:checked');
+                for (var i = 0; i < radio.length; i++) {
+                    saveWarnDevice(radio[i].value, radio[i].name, radio[i].max+" "+radio[i].step+" "+radio[i].min);
+                    $("#deviceTable").append("<tr><td>"+radio[i].value+"</td><td>"+radio[i].name+"</td>" +
+                            "<td>"+radio[i].max+" "+radio[i].step+" "+radio[i].min+"</td><td>" +
+                            "<button class='btn btn-xs btn-danger deviceDelBtn' rid='"+radio[i].value+"'>" +
+                            "<i class='fa fa-trash fa-btn'></i>删除" +
+                            "</button>" +
+                            "</td></tr>");
+                }
+                top.layer.close(index);
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将添加的关联设备保存到数据库
+    function saveWarnDevice(id, name, area) {
+        var warnId = ${warnId};
+        $.ajax({
+            url: "${basePath}/gov/warning/govDeviceWarningLink/insert",
+            type: "post",
+            data: {"warnId":warnId, "id":id, "name":name, "area":area},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+            }
+        });
+    }
+
+    // 关联设备的删除
+    $(document).on("click", ".deviceDelBtn", function () {
+        var deviceId = $(this).attr("rid");
+        var warnId = ${warnId};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true) {
+            $.ajax({
+                url: "${basePath}/gov/warning/govDeviceWarningLink/delete",
+                type: "POST",
+                data: {"warnId": warnId, "deviceId": deviceId},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    location.reload();
+                }
+            });
+        }
+    });
+
+    // 新增推送人员
+    $("#staffBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "新增推送人员",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govStaff/list",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var radio = layero.find("iframe")[0].contentWindow.$('input[type="checkbox"]:checked');
+                for (var i = 0; i < radio.length; i++) {
+                    saveWarnStaff(radio[i].value, radio[i].name, radio[i].min, radio[i].max);
+                    $("#staffTable").append("<tr><td>" + radio[i].value + "</td><td class='staffName'>" + radio[i].name + "</td>" +
+                            "<td>" + radio[i].min + "</td><td>" + radio[i].max + "</td><td>" +
+                            "<button class='btn btn-xs btn-warning staffModBtn' rid='" + radio[i].value + "'>" +
+                            "<i class='fa fa-edit fa-btn'></i>修改" +
+                            "</button>" +
+                            "<button class='btn btn-xs btn-danger staffDelBtn' rid='" + radio[i].value + "'>" +
+                            "<i class='fa fa-trash fa-btn'></i>删除" +
+                            "</button>" +
+                            "</td></tr>");
+                }
+                top.layer.close(index);
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将新增推送人员保存到数据库
+    function saveWarnStaff(id, name, phone, job) {
+        var warnId = ${warnId};
+        $.ajax({
+            url: "${basePath}/gov/warning/govDeviceWarningStaff/insert",
+            type: "post",
+            data: {"warnId":warnId, "id":id, "name":name, "phone":phone, "job":job},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+            }
+        });
+    }
+
+    // 新增推送人员的修改
+    $(document).on("click", ".staffModBtn", function () {
+        var staffId = $(this).attr("rid");
+        var warnId = ${warnId};
+        krt.layer.openDialog("修改预警规则_推送人员", "${basePath}/gov/warning/govDeviceWarningStaff/update?warnId="+warnId+"&pushManId="+staffId, "1000px", "500px");
+
+    });
+
+    // 新增推送人员的删除
+    $(document).on("click", ".staffDelBtn", function () {
+        var staffId = $(this).attr("rid");
+        var warnId = ${warnId};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true) {
+            $.ajax({
+                url: "${basePath}/gov/warning/govDeviceWarningStaff/delete",
+                type: "POST",
+                data: {"warnId":warnId, "pushManId": staffId},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    location.reload();
+                }
+            });
+        }
+    });
+
+    // 新增预警时间
+    $("#timeBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "新增预警时间段",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govDeviceWarningTime/insert",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var sTime = layero.find("iframe")[0].contentWindow.$("#startTime").val();
+                var fTime = layero.find("iframe")[0].contentWindow.$("#endTime").val();
+                var num = Math.ceil(Math.random()*10+1);
+
+                saveWarnTime(sTime, fTime);
+                $("#timeTable").append("<tr><th>"+num+"</th><th>"+sTime+"</th><th>"+fTime+"</th>" +
+                        "<th><button class='btn btn-xs btn-danger timeDelBtn' rid='"+sTime+"'>" +
+                        "<i class='fa fa-trash fa-btn'></i>删除 </button></th></tr>");
+
+                top.layer.close(index);
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将新增的预警时间保存到数据库
+    function saveWarnTime(sTime, fTime) {
+        var warnId = ${warnId};
+        $.ajax({
+            url: "${basePath}/gov/warning/govDeviceWarningTime/insert",
+            type: "post",
+            data: {"warnId": warnId, "sTime": sTime, "fTime": fTime},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+            }
+        });
+    }
+
+    // 新增预警时间的删除
+    $(document).on("click", ".timeDelBtn", function () {
+        var sTime = $(this).attr("sid");
+        var fTime = $(this).attr("fid");
+        var warnId = ${warnId};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true) {
+            $.ajax({
+                url: "${basePath}/gov/warning/govDeviceWarningTime/delete",
+                type: "POST",
+                data: {"warnId": warnId, "sTime": sTime, "fTime": fTime},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    location.reload();
+                }
+            });
+        }
+    });
+</script>
+</@footer>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.group.mapper.GovGroupMapper">
+
+    <sql id="Base_Column_List">
+        id,group_name,icon,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询设备分组列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.group.entity.GovGroup">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_group where 1=1
+        <if test="groupName !=null and groupName!=''">
+            and group_name like concat('%',#{groupName},'%')
+        </if>
+    </select>
+
+    <!--分组设备信息-->
+    <select id="selectDeviceGroups" resultType="java.util.Map">
+         SELECT gg.id,gg.group_name,gg.icon,
+            (SELECT COUNT(gd.id) FROM gov_device gd
+            WHERE gd.area=#{area} AND  gd.`group` = gg.id
+            <if test="hallId != null and hallId != '' ">
+                AND hall_id=#{hallId}
+            </if>
+            ) AS total,
+
+            (SELECT COUNT(gd.id) FROM gov_device gd
+            WHERE gd.area=#{area} AND  gd.`group` = gg.id AND gd.`status`=0
+            <if test="hallId != null and hallId != '' ">
+                AND hall_id=#{hallId}
+            </if>
+            ) AS closed,
+
+            (SELECT COUNT(gd.id) FROM gov_device gd
+            WHERE gd.area=#{area} AND  gd.`group` = gg.id AND gd.`status`=1
+            <if test="hallId != null and hallId != '' ">
+                AND hall_id=#{hallId}
+            </if>
+            ) AS opened,
+
+            (SELECT COUNT(gd.id) FROM gov_device gd
+            WHERE gd.area=#{area} AND  gd.`group` = gg.id AND gd.`status`=2
+            <if test="hallId != null and hallId != '' ">
+                AND hall_id=#{hallId}
+            </if>
+            ) AS earlyWarning
+
+            FROM gov_group gg
+    </select>
+</mapper>
+

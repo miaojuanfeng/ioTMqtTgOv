@@ -1,0 +1,136 @@
+package com.krt.gov.device.mapper;
+
+import com.krt.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.krt.gov.device.entity.GovDevice;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 设备映射层
+ *
+ * @author liuwei
+ * @version 1.0
+ * @date 2019年08月12日
+ */
+@Mapper
+public interface GovDeviceMapper extends BaseMapper<GovDevice> {
+
+    /**
+     * 根据设备id 获取设备的区域位置信息
+     *
+     * @param id
+     * @return
+     */
+    Map selectDevPosition(@Param("id") Integer id);
+
+    /**
+     * 设置设备的区域位置坐标
+     *
+     * @param x
+     * @param y
+     * @param id
+     */
+    void updateDevPosition(@Param("x") Integer x, @Param("y") Integer y, @Param("id") Integer id);
+
+    void updateStateByDeviceId(GovDevice device);
+
+    void updateStatusByDeviceId(@Param("deviceId") Long deviceId, @Param("port1") Integer port1, @Param("port2") Integer port2, @Param("port3") Integer port3, @Param("port4") Integer port4, @Param("port5") Integer port5);
+
+    void updateDataByDeviceId(@Param("deviceId") Long deviceId, @Param("data") String data);
+
+    void offLineAllDevice();
+
+    /**
+     * 设备管理接口查询设备
+     *
+     * @param type
+     * @param status
+     * @param area
+     * @return
+     */
+    List<Map> selectDeviceByTypeAndStatus(@Param("type") Integer type, @Param("status") Integer status,@Param("area") String area);
+
+    /**
+     * 设备布局接口查询设备状态
+     *
+     * @return
+     */
+    Map selectDeviceStatus(String area);
+
+    /**
+     * 设备布局接口查询所有设备
+     *
+     * @return
+     */
+    List<Map> selectAllDevices(String area);
+
+    /**
+     * 根据设备id查询设备详情信息
+     *
+     * @param id
+     * @return
+     */
+    Map selectDeviceById(Integer id);
+
+    /**
+     * 查询指定开关id
+     *
+     * @param deviceId
+     * @param port
+     * @return
+     */
+    Integer selectSwitchId(@Param("deviceId") Long deviceId, @Param("port") Integer port);
+
+    void updateBatchByIdPort(List<GovDevice> device);
+
+    /**
+     * 根据deviceId查找开关以外的设备的id
+     *
+     * @param deviceId
+     * @return
+     */
+    Integer selectByDeviceIdAndType(String deviceId);
+
+    List<GovDevice> selectByDeviceId(String deviceId);
+
+    /**
+     * 根据温湿度判断设备是否需要预警
+     * @param deviceId
+     * @param temp
+     * @param humi
+     * @return
+     */
+    Integer getWarningDeviceIdByTH(@Param("deviceId") Long deviceId,@Param("temp") Integer temp,@Param("humi") Integer humi);
+
+    /**
+     * 获得满足预警条件的开关id
+     * @param deviceId
+     * @param port1
+     * @param port2
+     * @param port3
+     * @param port4
+     * @param port5
+     * @return
+     */
+    List<Integer> getWarningSwitchId(@Param("deviceId") Long deviceId,@Param("port1") Integer port1,@Param("port2") Integer port2,@Param("port3") Integer port3,@Param("port4") Integer port4,@Param("port5") Integer port5);
+
+    /**
+     * 更改设备状态
+     * @param status
+     * @param id
+     */
+    void updateStatus(@Param("status") Integer status,@Param("id") Integer id);
+
+    /**
+     * 根据deviceId获取在预警规则中的开关id
+     * @param deviceId
+     * @return
+     */
+    List<Integer> selectSwitchIdOnWarning(Long deviceId);
+
+    List<Map> selectCodeBank(Map para);
+
+}

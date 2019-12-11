@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.warning.mapper.GovPushMapper">
+
+    <sql id="Base_Column_List">
+        id,sms_mode,strategy_name,pusher,status,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询推送规则设置列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.warning.entity.GovPush">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_push where 1=1
+            <if test="strategyName !=null and strategyName!=''">
+                        and strategy_name = #{strategyName}
+            </if>
+            <if test="pusher !=null and pusher!=''">
+                    and pusher like concat('%',#{pusher},'%')
+            </if>
+            <if test="status !=null and status!=''">
+                    and status like concat('%',#{status},'%')
+            </if>
+    </select>
+
+    <!-- 根据推送id 修改推送信息状态-->
+    <update id="updateStatusById" parameterType="java.lang.String">
+        update gov_push set status = #{status} where id = #{id}
+    </update>
+
+    <!-- 根据推送规则id 查询关联策略-->
+    <select id="selectPushStrategyById" parameterType="java.lang.String" resultType="java.util.Map">
+        select id, push_id, strategy_id, strategy_name, strategy_type_name
+        from gov_push_strategy where push_id = #{id}
+    </select>
+
+    <!-- 根据推送规则id 查询关联的人员-->
+    <select id="selectPushStaffById" parameterType="java.lang.String" resultType="java.util.Map">
+        select id, push_id, staff_uuid, staff_name, staff_phone, job
+        from gov_push_staff where push_id = #{id}
+    </select>
+
+    <!--保存策略名称和推送人员名字-->
+    <update id="saveStrategyAndStaff" parameterType="java.lang.String">
+        UPDATE gov_push SET strategy_name = #{strategyName}, pusher = #{staffName} WHERE id = #{pushId}
+    </update>
+
+</mapper>
+

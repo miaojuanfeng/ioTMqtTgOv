@@ -1,0 +1,365 @@
+package com.krt.gov.device.controller;
+
+import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.krt.common.annotation.KrtLog;
+import com.krt.common.base.BaseController;
+import com.krt.common.bean.DataTable;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.session.SessionUser;
+import com.krt.common.util.ShiroUtils;
+import com.krt.gov.device.entity.GovDevice;
+import com.krt.gov.device.entity.GovDeviceType;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.device.service.IGovDeviceTypeService;
+import com.krt.gov.hall.entity.GovHall;
+import com.krt.gov.hall.service.IGovHallService;
+import com.krt.gov.ir.service.IBrandService;
+import com.krt.sys.entity.Region;
+import com.krt.sys.service.IRegionService;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 设备控制层
+ *
+ * @author liuwei
+ * @version 1.0
+ * @date 2019年08月12日
+ */
+@Controller
+public class GovDeviceController extends BaseController {
+
+    @Autowired
+    private IGovDeviceService govDeviceService;
+
+    @Autowired
+    private IGovDeviceTypeService govDeviceTypeService;
+
+    @Autowired
+    private IRegionService regionService;
+
+    @Autowired
+    private IBrandService brandService;
+
+    @Autowired
+    private IGovHallService govHallService;
+
+    /**
+     * 设备管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovDevice:govDevice:list")
+    @GetMapping("gov/device/govDevice/list")
+    public String list() {
+        List<GovDeviceType> govDeviceTypes = govDeviceTypeService.selectAllDeviceTypes();
+        String jsonStr = JSON.toJSONString(govDeviceTypes);
+        request.setAttribute("govDeviceTypes", jsonStr);
+        return "gov/device/govDevice/list";
+    }
+
+    /**
+     * 设备管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("GovDevice:govDevice:list")
+    @PostMapping("gov/device/govDevice/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        SessionUser sessionUser = getSessionUser();
+
+        if (sessionUser.isAdmin()) {
+            IPage page = govDeviceService.selectPageList(para);
+            return DataTable.ok(page);
+        } else {
+            para.put("area", sessionUser.getArea());
+            IPage page = govDeviceService.selectPageList(para);
+            return DataTable.ok(page);
+        }
+    }
+
+    /**
+     * 设备类型选择页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovDevice:govDevice:insert")
+    @GetMapping("gov/device/govDevice/chooseType")
+    public String chooseType() {
+        List<GovDeviceType> govDeviceTypes = govDeviceTypeService.selectAllDeviceTypes();
+        request.setAttribute("govDeviceTypes", govDeviceTypes);
+        return "gov/device/govDevice/chooseType";
+    }
+
+    /**
+     * 新增设备页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovDevice:govDevice:insert")
+    @GetMapping("gov/device/govDevice/insert")
+    public String insert(GovDeviceType govDeviceType) {
+        SessionUser sessionUser = getSessionUser();
+        if (sessionUser.isAdmin()){
+            request.setAttribute("isAdmin","true");
+        }else {
+            request.setAttribute("area",sessionUser.getArea());
+            List<GovHall> govHallList = govHallService.selectByArea(sessionUser.getArea());
+            request.setAttribute("govHallList",govHallList);
+        }
+
+        List<Region> provinces = regionService.selectByPid(0);
+        request.setAttribute("provinces", provinces);
+        request.setAttribute("govDeviceType", govDeviceType);
+        switch (govDeviceType.getId()) {
+            case 1:
+                return "gov/device/govDevice/switch/insert";
+            case 2:
+                return "gov/device/govDevice/airConditioner/insert";
+            default:
+                return "gov/device/govDevice/switch/insert";
+        }
+    }
+
+    private SessionUser getSessionUser() {
+        return ShiroUtils.getSessionUser();
+    }
+
+    /**
+     * 添加设备
+     *
+     * @param govDevice 设备
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加设备")
+    @RequiresPermissions("GovDevice:govDevice:insert")
+    @PostMapping("gov/device/govDevice/insert")
+    @ResponseBody
+    public ReturnBean insert(GovDevice govDevice) {
+        boolean haveTheDeviceId = govDeviceService.haveTheDeviceId(govDevice);
+        Integer type = govDevice.getType();
+        if (haveTheDeviceId) {
+            switch (type) {
+                case 1:
+                    return ReturnBean.error("设备id已存在,请修改设备id或串口");
+                default:
+                    return ReturnBean.error("设备id已存在,请修改设备id");
+            }
+        } else {
+            //添加action
+            switch (type) {
+                //1为开关
+                case 1:
+                    govDevice.setAction("{\"time\":\"0\",\"onOff\":\"0\"}");
+                    break;
+                //2为空调
+                case 2:
+                    govDevice.setAction("{\"mode\":\"0\",\"temp\":\"24\",\"windSpeed\":\"0\",\"onOff\":\"1\"}");
+                    break;
+                default:
+                    break;
+            }
+            govDevice.setInfo(StringEscapeUtils.unescapeHtml4(govDevice.getInfo()));
+            govDevice.setActionTime(new Date());
+            govDeviceService.insert(govDevice);
+            return ReturnBean.ok();
+        }
+    }
+
+    /**
+     * 修改设备页
+     *
+     * @param id 设备id
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovDevice:govDevice:update")
+    @GetMapping("gov/device/govDevice/update")
+    public String update(Integer id) {
+        GovDevice govDevice = govDeviceService.selectById(id);
+        request.setAttribute("govDevice", govDevice);
+        List<Region> provinces = regionService.selectByPid(0);
+        request.setAttribute("provinces", provinces);
+        List<Region> cities = regionService.getCity(govDevice.getArea());
+        request.setAttribute("cities", cities);
+        List<Region> regions = regionService.getRegion(govDevice.getArea());
+        request.setAttribute("regions", regions);
+        Integer type = govDevice.getType();
+
+        SessionUser sessionUser = getSessionUser();
+        if (sessionUser.isAdmin()){
+            request.setAttribute("isAdmin","true");
+            List<GovHall> govHallList = govHallService.selectByArea(govDevice.getArea());
+            request.setAttribute("govHallList",govHallList);
+        }else {
+            request.setAttribute("area",sessionUser.getArea());
+            List<GovHall> govHallList = govHallService.selectByArea(sessionUser.getArea());
+            request.setAttribute("govHallList",govHallList);
+        }
+        switch (type) {
+            case 1:
+                return "gov/device/govDevice/switch/update";
+            case 2:
+                return "gov/device/govDevice/airConditioner/update";
+            default:
+                return "gov/device/govDevice/switch/update";
+        }
+    }
+
+    /**
+     * 修改设备
+     *
+     * @param govDevice 设备
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改设备")
+    @RequiresPermissions("GovDevice:govDevice:update")
+    @PostMapping("gov/device/govDevice/update")
+    @ResponseBody
+    public ReturnBean update(GovDevice govDevice) {
+        boolean haveTheDeviceId = govDeviceService.haveTheDeviceId(govDevice);
+        if (haveTheDeviceId) {
+            switch (govDevice.getType()) {
+                case 1:
+                    return ReturnBean.error("设备id已存在,请修改设备id或串口");
+                default:
+                    return ReturnBean.error("设备id已存在,请修改设备id");
+            }
+        } else {
+            govDevice.setInfo(StringEscapeUtils.unescapeHtml4(govDevice.getInfo()));
+            govDeviceService.updateById(govDevice);
+            return ReturnBean.ok();
+        }
+    }
+
+    /**
+     * 设备的区域位置信息
+     *
+     * @param id 设备id
+     */
+    @RequiresPermissions("GovDevice:govDevice:update")
+    @GetMapping("gov/device/govDevice/position")
+    public String position(Integer id) {
+        Map position = govDeviceService.selectDevPosition(id);
+        request.setAttribute("position", position);
+        request.setAttribute("id", id);
+
+        return "gov/device/govDevice/position";
+    }
+
+    /**
+     * 设备的区域位置信息
+     *
+     * @param x x
+     * @param y y
+     */
+    @RequiresPermissions("GovDevice:govDevice:update")
+    @PostMapping("gov/device/govDevice/position")
+    @ResponseBody
+    public ReturnBean position(Integer x, Integer y, Integer id) {
+        govDeviceService.updateDevPosition(x, y, id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除设备
+     *
+     * @param id 设备id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除设备")
+    @RequiresPermissions("GovDevice:govDevice:delete")
+    @PostMapping("gov/device/govDevice/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        govDeviceService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除设备
+     *
+     * @param ids 设备ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除设备")
+    @RequiresPermissions("GovDevice:govDevice:delete")
+    @PostMapping("gov/device/govDevice/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        govDeviceService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 获取区域信息
+     *
+     * @param pid
+     * @return
+     */
+    @PostMapping("gov/device/govDevice/getRegions")
+    @ResponseBody
+    public ReturnBean getRegions(Integer pid) {
+        if (pid!=null) {
+            List<Region> regions = regionService.selectByPid(pid);
+            return ReturnBean.ok(regions);
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 添加设备类型对应品牌
+     * @return
+     */
+    @KrtLog( "添加设备类型对应品牌")
+    @GetMapping("device/device/insertBrand")
+    public String insertBrand() {
+        return "gov/device/govDevice/airConditioner/brand";
+    }
+
+    /**
+     * 品牌表
+     */
+    @PostMapping("device/device/insertBrand")
+    @ResponseBody
+    public DataTable insertBrand(@RequestParam Map para) {
+        para.put("categoryid", 1);
+        IPage page = brandService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 添加设备码库
+     * @return
+     */
+    @KrtLog( "添加设备码库")
+    @GetMapping("device/device/insertCodeBank")
+    public String insertCodeBand(String brandName) {
+        request.setAttribute("brandName", brandName);
+        return "gov/device/govDevice/airConditioner/codeBank";
+    }
+
+    /**
+     * 码库表
+     */
+    @PostMapping("device/device/insertCodeBank")
+    @ResponseBody
+    public DataTable insertCodeBand(@RequestParam Map para) {
+        IPage page = govDeviceService.selectCodeBank(para);
+        return DataTable.ok(page);
+    }
+
+}

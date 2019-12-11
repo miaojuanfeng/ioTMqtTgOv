@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.warning.mapper.GovDeviceWarningStaffMapper">
+
+    <sql id="Base_Column_List">
+        id,warning_id,staff_name,staff_uuid,staff_phone,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询预警规则_推送人员列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.warning.entity.GovDeviceWarningStaff">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_device_warning_staff where 1=1
+            <if test="staffName !=null and staffName!=''">
+                    and staff_name like concat('%',#{staffName},'%')
+            </if>
+            <if test="staffPhone !=null and staffPhone!=''">
+                    and staff_phone like concat('%',#{staffPhone},'%')
+            </if>
+    </select>
+
+    <!--根据warnId 和 pushManId 查询预警推送人员-->
+    <select id="selectOneByWarnId" parameterType="java.lang.Integer" resultType="com.krt.gov.warning.entity.GovDeviceWarningStaff">
+        select * from gov_device_warning_staff where warning_id = #{warnId} and staff_uuid = #{pushManId}
+    </select>
+
+    <!--根据warnId 和 pushManId 删除预警推送人员-->
+    <delete id="deleteByWarnId" parameterType="java.lang.Integer">
+        delete from gov_device_warning_staff where warning_id = #{warnId} and staff_uuid = #{pushManId}
+    </delete>
+
+    <!--根据warnId查预警推送人-->
+    <select id="selectByWarnId" resultType="com.krt.gov.warning.entity.GovDeviceWarningStaff">
+        select warning_id,staff_name,staff_uuid,staff_phone
+        from gov_device_warning_staff
+        where warning_id=#{warnId}
+    </select>
+
+    <!--根据warnId 删除预警推送人员-->
+    <delete id="deleteByWarningId" parameterType="java.lang.Integer">
+        delete from gov_device_warning_staff where warning_id = #{warnId}
+    </delete>
+</mapper>
+

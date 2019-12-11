@@ -1,0 +1,6 @@
+package com.krt.gov.common.constant;
+
+public class CommonApiConst {
+
+    public static final int ACTION_LIMIT = 3;
+}

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.strategy.mapper.DeviceStrategyRequireMapper">
+
+    <sql id="Base_Column_List">
+        id,strategy_id,device_id,device_name,requires,requires_details,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询设备动作策略_触发条件列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.strategy.entity.DeviceStrategyRequire">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_device_strategy_require where 1=1
+    </select>
+
+    <select id="selectByStrategyId" resultType="com.krt.gov.strategy.entity.DeviceStrategyRequire">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_device_strategy_require where 1=1 and strategy_id = #{strategyId}
+    </select>
+
+    <delete id="deleteByStrategyId">
+        delete from gov_device_strategy_require where strategy_id = #{strategyId}
+    </delete>
+
+    <!--温湿度查开关执行操作-->
+    <select id="getSwitchStrategyActionByTH" resultType="java.util.Map">
+        SELECT gds.id,(SELECT device_id FROM gov_device g WHERE g.id=gdsl.device_id) AS deviceId,(SELECT id FROM gov_device g WHERE g.id=gdsl.device_id) AS dId,gdsl.action,(SELECT `port` FROM gov_device g WHERE g.id=gdsl.device_id) AS port FROM gov_device_strategy_require gdsr
+        LEFT JOIN gov_device gd ON gd.id=gdsr.device_id
+        LEFT JOIN gov_device_strategy_link gdsl ON gdsr.strategy_id=gdsl.strategy_id
+        LEFT JOIN gov_device_strategy gds ON gdsr.strategy_id=gds.id
+        WHERE gd.device_id=#{deviceId} AND gds.strategy_type_code=3
+        AND(#{temp}<![CDATA[ < ]]>temp_l OR #{temp}>temp_h OR #{humi} <![CDATA[ < ]]> humi_l OR #{humi}>humi_h)
+        AND (SELECT type FROM gov_device g WHERE g.id=gdsl.device_id)=1
+        AND find_in_set((select date_format(curdate(),'%w') from dual), gds.week) >= 1
+        AND gds.`status`=1
+        GROUP BY gdsl.id,gds.id
+    </select>
+
+    <!--温湿度查空调执行操作-->
+    <select id="getAirConditionerStrategyActionByTH" resultType="java.util.Map">
+        SELECT gds.id,(SELECT device_id FROM gov_device g WHERE g.id=gdsl.device_id) AS deviceId,(SELECT id FROM gov_device g WHERE g.id=gdsl.device_id) AS dId,gdsl.action FROM gov_device_strategy_require gdsr
+        LEFT JOIN gov_device gd ON gd.id=gdsr.device_id
+        LEFT JOIN gov_device_strategy_link gdsl ON gdsr.strategy_id=gdsl.strategy_id
+        LEFT JOIN gov_device_strategy gds ON gdsr.strategy_id=gds.id
+        WHERE gd.device_id=#{deviceId} AND gds.strategy_type_code=3
+        AND(#{temp}<![CDATA[ < ]]>temp_l OR #{temp}>temp_h OR #{humi} <![CDATA[ < ]]> humi_l OR #{humi}>humi_h)
+        AND (SELECT type FROM gov_device g WHERE g.id=gdsl.device_id)=2
+        AND find_in_set((select date_format(curdate(),'%w') from dual), gds.week) >= 1
+        AND gds.`status`=1
+        GROUP BY gdsl.id,gds.id
+    </select>
+
+    <!--开关查开关执行操作-->
+    <select id="getSwitchStrategyActionBySwitch" resultType="java.util.Map">
+        SELECT gds.id,(SELECT device_id FROM gov_device g WHERE g.id=gdsl.device_id) AS deviceId,(SELECT id FROM gov_device g WHERE g.id=gdsl.device_id) AS dId,gdsl.action,(SELECT `port` FROM gov_device g WHERE g.id=gdsl.device_id) AS port FROM gov_device_strategy_require gdsr
+        LEFT JOIN gov_device gd ON gd.id=gdsr.device_id
+        LEFT JOIN gov_device_strategy_link gdsl ON gdsr.strategy_id=gdsl.strategy_id
+        LEFT JOIN gov_device_strategy gds ON gdsr.strategy_id=gds.id
+        WHERE gd.device_id=#{deviceId} AND gds.strategy_type_code=3
+        AND ((gd.`port`=1 AND gdsr.on_off=#{port1})
+        or (gd.`port`=2 AND gdsr.on_off=#{port2})
+        or (gd.`port`=3 AND gdsr.on_off=#{port3})
+        or (gd.`port`=4 AND gdsr.on_off=#{port4})
+        or (gd.`port`=5 AND gdsr.on_off=#{port5}))
+        AND (SELECT type FROM gov_device g WHERE g.id=gdsl.device_id)=1
+        AND find_in_set((select date_format(curdate(),'%w') from dual), gds.week) >= 1
+        AND gds.`status`=1
+        GROUP BY gdsl.id,gds.id
+    </select>
+
+    <!--开关查空调执行操作-->
+    <select id="getAirConditionerStrategyActionBySwitch" resultType="java.util.Map">
+        SELECT gds.id,(SELECT device_id FROM gov_device g WHERE g.id=gdsl.device_id) AS deviceId,
+        (SELECT id FROM gov_device g WHERE g.id=gdsl.device_id) AS dId,gdsl.action
+        FROM gov_device_strategy_require gdsr
+        LEFT JOIN gov_device gd ON gd.id=gdsr.device_id
+        LEFT JOIN gov_device_strategy_link gdsl ON gdsr.strategy_id=gdsl.strategy_id
+        LEFT JOIN gov_device_strategy gds ON gdsr.strategy_id=gds.id
+        WHERE gd.device_id=#{deviceId} AND gds.strategy_type_code=3
+        AND ((gd.`port`=1 AND gdsr.on_off=#{port1})
+        or (gd.`port`=2 AND gdsr.on_off=#{port2})
+        or (gd.`port`=3 AND gdsr.on_off=#{port3})
+        or (gd.`port`=4 AND gdsr.on_off=#{port4})
+        or (gd.`port`=5 AND gdsr.on_off=#{port5}))
+        AND (SELECT type FROM gov_device g WHERE g.id=gdsl.device_id)=2
+        AND find_in_set((select date_format(curdate(),'%w') from dual), gds.week) >= 1
+        AND gds.`status`=1
+        GROUP BY gdsl.id,gds.id
+    </select>
+</mapper>
+

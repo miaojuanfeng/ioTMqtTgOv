@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="gov-common" />
+        <module name="gov-device" />
+        <module name="gov-ir" />
+        <module name="gov-strategy" />
+        <module name="gov-warning" />
+        <module name="krt-api" />
+        <module name="krt-common" />
+        <module name="krt-framework" />
+        <module name="krt-gen" />
+        <module name="krt-monitor" />
+        <module name="krt-plugin-activemq" />
+        <module name="krt-plugin-captcha" />
+        <module name="krt-plugin-ehcache" />
+        <module name="krt-plugin-file" />
+        <module name="krt-plugin-jpush" />
+        <module name="krt-plugin-lucene" />
+        <module name="krt-plugin-mail" />
+        <module name="krt-plugin-oauth2" />
+        <module name="krt-plugin-quartz" />
+        <module name="krt-plugin-redis" />
+        <module name="krt-plugin-websocket" />
+        <module name="krt-sys" />
+        <module name="krt-web" />
+      </profile>
+    </annotationProcessing>
+  </component>
+</project>

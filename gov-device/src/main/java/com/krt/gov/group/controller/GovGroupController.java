@@ -1,0 +1,174 @@
+package com.krt.gov.group.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.krt.common.annotation.KrtLog;
+import com.krt.common.base.BaseController;
+import com.krt.common.bean.DataTable;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.session.SessionUser;
+import com.krt.common.util.ShiroUtils;
+import com.krt.gov.device.entity.GovDevice;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.group.entity.GovGroup;
+import com.krt.gov.group.service.IGovGroupService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 设备分组控制层
+ *
+ * @author 刘威
+ * @version 1.0
+ * @date 2019年10月14日
+ */
+@Controller
+public class GovGroupController extends BaseController {
+
+    @Autowired
+    private IGovGroupService govGroupService;
+
+    @Autowired
+    private IGovDeviceService govDeviceService;
+
+    /**
+     * 设备分组管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceGroup:govGroup:list")
+    @GetMapping("gov/group/govGroup/list")
+    public String list() {
+        return "gov/group/govGroup/list";
+    }
+
+    /**
+     * 设备分组管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("DeviceGroup:govGroup:list")
+    @PostMapping("gov/group/govGroup/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = govGroupService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增设备分组页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceGroup:govGroup:insert")
+    @GetMapping("gov/group/govGroup/insert")
+    public String insert() {
+        return "gov/group/govGroup/insert";
+    }
+
+    /**
+     * 添加设备分组
+     *
+     * @param govGroup 设备分组
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加设备分组")
+    @RequiresPermissions("DeviceGroup:govGroup:insert")
+    @PostMapping("gov/group/govGroup/insert")
+    @ResponseBody
+    public ReturnBean insert(GovGroup govGroup) {
+        govGroupService.insert(govGroup);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改设备分组页
+     *
+     * @param id 设备分组id
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceGroup:govGroup:update")
+    @GetMapping("gov/group/govGroup/update")
+    public String update(Integer id) {
+        GovGroup govGroup = govGroupService.selectById(id);
+        request.setAttribute("govGroup", govGroup);
+        return "gov/group/govGroup/update";
+    }
+
+    /**
+     * 修改设备分组
+     *
+     * @param govGroup 设备分组
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改设备分组")
+    @RequiresPermissions("DeviceGroup:govGroup:update")
+    @PostMapping("gov/group/govGroup/update")
+    @ResponseBody
+    public ReturnBean update(GovGroup govGroup) {
+        govGroupService.updateById(govGroup);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 设备分组查看页
+     *
+     * @param groupId 设备分组id
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceGroup:govGroup:see")
+    @GetMapping("gov/group/govGroup/see")
+    public String see(Integer groupId) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+        List<GovDevice> govDeviceList = null;
+        if (sessionUser.isAdmin()) {
+            govDeviceList = govDeviceService.listDevicesByGroupId(null, groupId);
+        } else {
+            govDeviceList = govDeviceService.listDevicesByGroupId(sessionUser.getArea(), groupId);
+        }
+        request.setAttribute("govDeviceList", govDeviceList);
+        return "gov/group/govGroup/see";
+    }
+
+
+    /**
+     * 删除设备分组
+     *
+     * @param id 设备分组id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除设备分组")
+    @RequiresPermissions("DeviceGroup:govGroup:delete")
+    @PostMapping("gov/group/govGroup/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        govGroupService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+//    /**
+//     * 批量删除设备分组
+//     *
+//     * @param ids 设备分组ids
+//     * @return {@link ReturnBean}
+//     */
+//    @KrtLog("批量删除设备分组")
+//    @RequiresPermissions("DeviceGroup:govGroup:delete")
+//    @PostMapping("gov/group/govGroup/deleteByIds")
+//    @ResponseBody
+//    public ReturnBean deleteByIds(Integer[] ids) {
+//        govGroupService.deleteByIds(Arrays.asList(ids));
+//        return ReturnBean.ok();
+//    }
+
+
+}

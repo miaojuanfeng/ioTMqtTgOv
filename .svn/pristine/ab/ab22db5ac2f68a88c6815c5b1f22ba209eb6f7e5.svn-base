@@ -1,0 +1,292 @@
+<#include "/common/layoutForm.ftl" />
+<@header>
+
+</@header>
+<@body>
+<div class="wrapper">
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <form role="form" class="form-horizontal krt-form" id="krtForm">
+                    <div class="box-body">
+                        <!--策略名称-->
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="strategyBtn" class="control-label col-sm-2">策略名称：</label>
+                                <button title="添加" type="button" id="strategyBtn" data-placement="left"
+                                        data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="strategyTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">序号</th>
+                                            <th width="20%">策略名称</th>
+                                            <th width="40%">策略类型</th>
+                                            <th width="20%">操作</th>
+                                        </tr>
+                                        <#list govStrategys as strategy>
+                                            <tr>
+                                                <th>${strategy.id}</th>
+                                                <th class="strategyName">${strategy.strategyName}</th>
+                                                <th>${strategy.strategyTypeName}</th>
+                                                <th>
+                                                    <button class='btn btn-xs btn-danger strategyDelBtn'
+                                                            rid='${strategy.strategyId}'>
+                                                        <i class='fa fa-trash fa-btn'></i>删除
+                                                    </button>
+                                                </th>
+                                            </tr>
+                                        </#list>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <!--关联推送人-->
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="staffBtn" class="control-label col-sm-2">关联推送人：</label>
+                                <button title="添加" type="button" id="staffBtn" data-placement="left"
+                                        data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="staffTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">序号</th>
+                                            <th width="20%">姓名</th>
+                                            <th width="30%">手机号</th>
+                                            <th width="10%">职务</th>
+                                            <th width="20%">操作</th>
+                                        </tr>
+                                        <#list govStaffs as staff>
+                                            <tr>
+                                                <th>${staff.id}</th>
+                                                <th class="staffName">${staff.staffName}</th>
+                                                <th>${staff.staffPhone}</th>
+                                                <th>${staff.job}</th>
+                                                <th>
+                                                    <button class='btn btn-xs btn-warning staffModBtn'
+                                                            rid='${staff.staffUuid}'>
+                                                        <i class='fa fa-edit fa-btn'></i>修改
+                                                    </button>
+                                                    <button class='btn btn-xs btn-danger staffDelBtn'
+                                                            rid='${staff.staffUuid}'>
+                                                        <i class='fa fa-trash fa-btn'></i>删除
+                                                    </button>
+                                                </th>
+                                            </tr>
+                                        </#list>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+</@body>
+
+<@footer>
+<script type="text/javascript">
+    var validateForm;
+    $(function () {
+        //验证表单
+        validateForm = $("#krtForm").validate({});
+    });
+
+    //提交
+    function doSubmit() {
+        var pushId = ${pushId};
+        var strategyName = "";
+        var staffName = "";
+
+        var strategyObj = $("#strategyTable .strategyName");
+        var len = strategyObj.length;
+        for (var i=0; i<len; i++){
+            strategyName += strategyObj.eq(i).html();
+            if (i < len-1){
+                strategyName +=",";
+            }
+        }
+        var staffObj = $("#staffTable .staffName");
+        var len2 = staffObj.length;
+        for (var i=0; i<len2; i++){
+            staffName += staffObj.eq(i).html();
+            if (i < len2-1){
+                staffName +=",";
+            }
+        }
+        krt.ajax({
+            type: "POST",
+            url: "${basePath}/gov/warning/govPush/saveStrategyAndStaff",
+            data: {"strategyName":strategyName,"staffName":staffName,"pushId":pushId},
+            validateForm: validateForm,
+            success: function (rb) {
+                krt.layer.msg(rb.msg);
+                if (rb.code === 200) {
+                    var index = krt.layer.getFrameIndex(); //获取窗口索引
+                    krt.table.reloadTable();
+                    krt.layer.close(index);
+                }
+            }
+        });
+    }
+
+    // 关联策略
+    $("#strategyBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "添加关联策略",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govPushStrategy/list",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var radio = layero.find("iframe")[0].contentWindow.$('input[type="checkbox"]:checked');
+                for (var i = 0; i < radio.length; i++) {
+                    var typeName = "123";
+                    if (radio[i].max == 2) {
+                        typeName = '定时自动执行策略';
+                    } else if (radio[i].max == 3) {
+                        typeName = '条件触发执行策略';
+                    }
+                    savePushStrategy(radio[i].value, radio[i].name, typeName);
+                    $("#strategyTable").append("<tr><td>" + radio[i].value + "</td><td class='strategyName'>" + radio[i].name + "</td>" +
+                            "<td>" + typeName + "</td><td>" +
+                            "<button class='btn btn-xs btn-danger strategyDelBtn' rid='" + radio[i].value + "'>" +
+                            "<i class='fa fa-trash fa-btn'></i>删除" +
+                            "</button>" +
+                            "</td></tr>");
+                }
+                top.layer.close(index);
+                krt.table.reloadTable();
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将添加的关联策略保存到数据库
+    function savePushStrategy(id, name, typeName) {
+        var pushId = ${pushId};
+        $.ajax({
+            url: "${basePath}/gov/warning/govPushStrategy/insert",
+            type: "post",
+            data: {"pushId": pushId, "id": id, "name": name, "typeName": typeName},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+            }
+        });
+    }
+
+    // 关联策略的删除
+    $(document).on("click", ".strategyDelBtn", function () {
+        var strategyId = $(this).attr("rid");
+        var pushId = ${pushId};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true) {
+            $.ajax({
+                url: "${basePath}/gov/warning/govPushStrategy/delete",
+                type: "POST",
+                data: {"pushId": pushId, "strategyId": strategyId},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    location.reload();
+                }
+            });
+        }
+    });
+
+    // 新增推送人员
+    $("#staffBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "新增推送人员",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govStaff/list",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var radio = layero.find("iframe")[0].contentWindow.$('input[type="checkbox"]:checked');
+                for (var i = 0; i < radio.length; i++) {
+                    savePushStaff(radio[i].value, radio[i].name, radio[i].min, radio[i].max);
+                    $("#staffTable").append("<tr><td>" + radio[i].value + "</td><td class='staffName'>" + radio[i].name + "</td>" +
+                            "<td>" + radio[i].min + "</td><td>" + radio[i].max + "</td><td>" +
+                            "<button class='btn btn-xs btn-warning staffModBtn' rid='" + radio[i].value + "'>" +
+                            "<i class='fa fa-edit fa-btn'></i>修改" +
+                            "</button>" +
+                            "<button class='btn btn-xs btn-danger staffDelBtn' rid='" + radio[i].value + "'>" +
+                            "<i class='fa fa-trash fa-btn'></i>删除" +
+                            "</button>" +
+                            "</td></tr>");
+                }
+                top.layer.close(index);
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将新增推送人员保存到数据库
+    function savePushStaff(id, name, phone, job) {
+        var pushId = ${pushId};
+        $.ajax({
+            url: "${basePath}/gov/warning/govPushStaff/insert",
+            type: "post",
+            data: {"pushId": pushId, "id": id, "name": name, "phone": phone, "job": job},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+
+            }
+        });
+    }
+
+    // 新增推送人员的修改
+    $(document).on("click", ".staffModBtn", function () {
+        var staffId = $(this).attr("rid");
+        var pushId = ${pushId};
+        krt.layer.openDialog("修改预警规则_推送人员", "${basePath}/gov/warning/govPushStaff/update?pushId="+pushId+"&staffId="+staffId, "1000px", "500px");
+    });
+
+    // 新增推送人员的删除
+    $(document).on("click", ".staffDelBtn", function () {
+        var staffId = $(this).attr("rid");
+        var pushId = ${pushId};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true) {
+            $.ajax({
+                url: "${basePath}/gov/warning/govPushStaff/delete",
+                type: "POST",
+                data: {"pushId": pushId, "staffId": staffId},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    location.reload();
+                }
+            });
+        }
+    });
+
+</script>
+</@footer>
+

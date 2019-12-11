@@ -1,0 +1,111 @@
+package com.krt.gov.device.entity;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.krt.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+/**
+ * 设备实体类
+ *
+ * @author liuwei
+ * @version 1.0
+ * @date 2019年08月12日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("gov_device")
+public class GovDevice extends BaseEntity {
+
+    /**
+     * 设备id
+     */
+    private Long deviceId;
+    /**
+     * 产品编号
+     */
+    private Long productId;
+    /**
+     * 设备名
+     */
+    private String name;
+    /**
+     * 设备类型
+     */
+    private Integer type;
+    /**
+     * 设备分组
+     */
+    @TableField(value = "`group`")
+    private Integer group;
+    /**
+     * 信息
+     */
+    private String info;
+    /**
+     * 设备在区域图中X轴、Y轴位置
+     */
+    private Integer x;
+
+    private Integer y;
+
+    private Integer state;
+
+    private Integer status;
+
+    private String data;
+
+    private String action;
+
+    private Date actionTime;
+
+    /**
+     * 通道
+     */
+    private String port;
+
+    /**
+     * 区域code
+     */
+    private String area;
+
+    /**
+     * 存储品牌数据
+     */
+    private String brandName;
+    /**
+     * 存储码库数据
+     */
+    private String fileName;
+
+    /**
+     * 设备所在大厅id
+     */
+    private Integer hallId;
+
+    /**
+     * 空纸距离
+     */
+    private Integer disEmpty;
+
+    /**
+     * 满纸距离
+     */
+    private Integer disFull;
+
+    /**
+     * 纸张百分比
+     */
+    private BigDecimal disPercent;
+
+    /**
+     * 打印机区分标识
+     */
+    private String machine;
+}

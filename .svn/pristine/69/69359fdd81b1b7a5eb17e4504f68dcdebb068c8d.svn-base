@@ -1,0 +1,331 @@
+<#include "/common/layoutForm.ftl">
+<@header></@header>
+<style type="text/css">
+    .form-horizontal .row {
+        margin-right: 0 !important;
+    }
+</style>
+<@body>
+<div class="wrapper">
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <form role="form" class="form-horizontal krt-form" id="krtForm">
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="pname" class="control-label col-sm-2">预警设备类型：</label>
+                                <div class="col-sm-8">
+                                    <select class="form-control select2" id="attrTypeCode" name="attrTypeCode">
+                                        <option value="term_appli_equip"
+                                                <#if govDevWarn.attrTypeCode == "term_appli_equip">selected</#if>>
+                                            终端应用设备
+                                        </option>
+                                        <option value="temp_humi_sensor"
+                                                <#if govDevWarn.attrTypeCode == "temp_humi_sensor">selected</#if>>
+                                            温湿度传感器
+                                        </option>
+                                        <option value="other_office_equip"
+                                                <#if govDevWarn.attrTypeCode == "other_office_equip">selected</#if>>
+                                            其他办公设备
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label class="control-label col-sm-2">预警类型：</label>
+                                <div class="col-sm-8">
+                                    <#list warnTypes as warnType>
+                                        <input type="checkbox" name="warningTypeCode" ${warnType.sign} class="icheck"
+                                               value="${warnType.code}"/> ${warnType.name}
+                                    </#list>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="pname" class="control-label col-sm-2">预警细节设置：</label>
+                                <div class="col-sm-8">
+                                    <input type="text" id="warningDetails" name="warningDetails"
+                                           value='${(govDevWarn.warningDetails)!}' class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="pname" class="control-label col-sm-2">
+                                    短信模板：
+                                </label>
+                                <div class="col-sm-8">
+                                    <textarea rows="3" name="smsMode" class="form-control">${govDevWarn.smsMode!"无短信模板"}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="linkNum" class="control-label col-sm-2">关联设备数量：</label>
+                                <button title="添加" type="button" id="linkNumBtn" data-placement="left" data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="linkNumTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">ID</th>
+                                            <th width="20%">设备名称</th>
+                                            <th width="40%">所属区域</th>
+                                            <th width="20%">操作</th>
+                                        </tr>
+                                    </table>
+                                    <input type="hidden" name="deviceStrategyLinks">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="pushMan" class="control-label col-md-2">推送人：</label>
+                                <button title="添加" type="button" id="pushManBtn" data-placement="left" data-toggle="tooltip"
+                                        class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus"></i> 添加
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <table id="pushManTable" class="table table-bordered table-hover">
+                                        <tr>
+                                            <th width="10%">工号</th>
+                                            <th width="20%">姓名</th>
+                                            <th width="30%">手机号码</th>
+                                            <th width="20%">职务</th>
+                                            <th width="18%">操作</th>
+                                        </tr>
+                                    </table>
+                                    <input type="hidden" name="deviceStrategyLinks">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="pname" class="control-label col-sm-3">预警时间-星期几：</label>
+                                <div class="col-sm-8">
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[0]} value="1">周一 &nbsp;&nbsp;&nbsp;
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[1]} value="2">周二 &nbsp;&nbsp;&nbsp;
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[2]} value="3">周三 &nbsp;&nbsp;&nbsp;
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[3]} value="4">周四 &nbsp;&nbsp;&nbsp;
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[4]} value="5">周五 &nbsp;&nbsp;&nbsp;
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[5]} value="6">周六 &nbsp;&nbsp;&nbsp;
+                                    <input type="checkbox" name="week" class="icheck" ${weeks[6]} value="7">周天 &nbsp;&nbsp;&nbsp;
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="pname" class="control-label col-sm-3">节假日是否预警：</label>
+                                <div class="col-sm-8">
+                                    <input type="radio" name="isHoliday" class="icheck" value="1" ${holiday[1]}>是&nbsp;&nbsp;
+                                    <input type="radio" name="isHoliday" class="icheck" value="0" ${holiday[0]}>否&nbsp;&nbsp;
+                                    <input type="radio" name="isHoliday" class="icheck" value="2" ${holiday[2]}>仅节假日执行
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label class="control-label col-sm-2">状态：</label>
+                                <div class="col-sm-8">
+                                    <#if govDevWarn.status == 1>
+                                        <input type="radio" name="status" class="icheck" value="1" checked >启用&nbsp;&nbsp;
+                                        <input type="radio" name="status" class="icheck" value="2" >禁用
+                                    </#if>
+                                    <#if govDevWarn.status == 2>
+                                        <input type="radio" name="status" class="icheck" value="1" >启用&nbsp;&nbsp;
+                                        <input type="radio" name="status" class="icheck" value="2" checked >禁用
+                                    </#if>
+                                </div>
+                            </div>
+                        </div>
+                            <!-- 隐藏域 -->
+                            <input type="hidden" name="id" id="id" value="${govDevWarn.id!}">
+                        </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+</@body>
+<@footer>
+<script type="text/javascript">
+    var validateForm;
+    $(function () {
+        //验证表单
+        validateForm = $("#krtForm").validate({});
+
+    });
+
+    //提交
+    function doSubmit() {
+        krt.ajax({
+            type: "POST",
+            url: "${basePath}/gov/warning/govDeviceWarning/update",
+            data: $('#krtForm').serialize(),
+            validateForm: validateForm,
+            success: function (rb) {
+                krt.layer.msg(rb.msg);
+                if (rb.code === 200) {
+                    var index = krt.layer.getFrameIndex(); //获取窗口索引
+                    krt.table.reloadTable();
+                    krt.layer.close(index);
+                }
+            }
+        });
+    }
+
+    // 关联设备
+    $("#linkNumBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "关联预警设备",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govDevice/list",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var radio = layero.find("iframe")[0].contentWindow.$('input[type="checkbox"]:checked');
+                for (var i=0; i<radio.length; i++){
+                    saveLineNum(radio[i].value, radio[i].name, radio[i].max+" "+radio[i].step+" "+radio[i].min);
+                    $("#linkNumTable").append("<tr><td>"+radio[i].value+"</td><td>"+radio[i].name+"</td>" +
+                            "<td>"+radio[i].max+" "+radio[i].step+" "+radio[i].min+"</td><td>" +
+                            "<button class='btn btn-xs btn-danger lineNumDeleteBtn' rid='"+radio[i].value+"'>" +
+                            "<i class='fa fa-trash fa-btn'></i>删除" +
+                            "</button>" +
+                            "</td></tr>");
+                }
+                top.layer.close(index);
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将关联的设备保存到数据库
+    function saveLineNum(id, name, area){
+        var warnId = ${govDevWarn.id};
+        $.ajax({
+            url: "${basePath}/gov/warning/govDeviceWarningLink/insert",
+            type: "post",
+            data: {"warnId":warnId, "id":id, "name":name, "area":area},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+
+            }
+        });
+    }
+
+    // 关联设备的删除
+    $(document).on("click", ".lineNumDeleteBtn", function () {
+        var deviceId = $(this).attr("rid");
+        var warnId = ${govDevWarn.id};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true){
+            $.ajax({
+                url: "${basePath}/gov/warning/govDeviceWarningLink/delete",
+                type: "POST",
+                data: {"warnId": warnId, "deviceId": deviceId},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    if (rb.code == 200) {
+                        krt.table.reloadTable();
+                    }
+                }
+            });
+        }
+    });
+
+    // 新增推送人员
+    $("#pushManBtn").click(function () {
+        krt.layer.open({
+            type: 2,
+            area: ['900px', '500px'],
+            title: "新增推送人员",
+            maxmin: true, //开启最大化最小化按钮
+            content: "${basePath}/gov/warning/govStaff/list",
+            btn: ['确定', '关闭'],
+            yes: function (index, layero) {
+                var radio = layero.find("iframe")[0].contentWindow.$('input[type="checkbox"]:checked');
+                for (var i=0; i<radio.length; i++){
+                    savePushMan(radio[i].value, radio[i].name, radio[i].min, radio[i].max);
+                    $("#pushManTable").append("<tr><td>"+radio[i].value+"</td><td>"+radio[i].name+"</td>" +
+                            "<td>"+radio[i].min+"</td><td>"+radio[i].max+"</td><td>" +
+                            "<button class='btn btn-xs btn-warning pushManUpdateBtn' rid='"+radio[i].value+"'>" +
+                            "<i class='fa fa-edit fa-btn'></i>修改" +
+                            "</button>" +
+                            "<button class='btn btn-xs btn-danger pushManDeleteBtn' rid='"+radio[i].value+"'>" +
+                            "<i class='fa fa-trash fa-btn'></i>删除" +
+                            "</button>" +
+                            "</td></tr>");
+                }
+                top.layer.close(index);
+            },
+            cancel: function (index) {
+                top.layer.close(index);
+            }
+        });
+    });
+
+    // 将新增推送人员保存到数据库
+    function savePushMan(id, name, phone, job){
+        var warnId = ${govDevWarn.id};
+        $.ajax({
+            url: "${basePath}/gov/warning/govDeviceWarningStaff/insert",
+            type: "post",
+            data: {"warnId":warnId, "id":id, "name":name, "phone":phone, "job":job},
+            success: function (res) {
+                top.layer.msg(res.msg);
+            },
+            error: function () {
+                top.layer.msg("操作失败，程序错误");
+
+            }
+        });
+    }
+
+    // 新增推送人员的修改
+    $(document).on("click", ".pushManUpdateBtn", function () {
+        var pushManId = $(this).attr("rid");
+        top.krt.layer.openDialog("修改预警规则_推送人员", "${basePath}/gov/warning/govDeviceWarningStaff/update?warnId="+ ${govDevWarn.id}+"&pushManId="+pushManId, "1000px", "500px");
+    });
+
+    // 新增推送人员的删除
+    $(document).on("click", ".pushManDeleteBtn", function () {
+        var pushManId = $(this).attr("rid");
+        var warnId = ${govDevWarn.id};
+        var judge = confirm("你确定删除吗？");
+        if (judge == true){
+            $.ajax({
+                url: "${basePath}/gov/warning/govDeviceWarningStaff/delete",
+                type: "POST",
+                data: {"warnId":warnId, "pushManId": pushManId},
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    if (rb.code == 200) {
+                        krt.table.reloadTable();
+                    }
+                }
+            });
+        }
+    });
+
+</script>
+</@footer>
+

@@ -1,0 +1,32 @@
+package com.krt.gov.hall.service.impl;
+
+import org.springframework.stereotype.Service;
+import com.krt.gov.hall.entity.GovHall;
+import com.krt.gov.hall.mapper.GovHallMapper;
+import com.krt.gov.hall.service.IGovHallService;
+import com.krt.common.base.BaseServiceImpl;
+
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 大厅服务接口实现层
+ *
+ * @author 刘威
+ * @version 1.0
+ * @date 2019年10月11日
+ */
+@Service
+public class GovHallServiceImpl extends BaseServiceImpl<GovHallMapper, GovHall> implements IGovHallService {
+
+    @Override
+    public List<Map> getFloorInfo(String type) {
+        return baseMapper.getFloorInfo(type);
+    }
+
+    @Override
+    public List<GovHall> selectByArea(String area) {
+        return baseMapper.selectByArea(area);
+    }
+}

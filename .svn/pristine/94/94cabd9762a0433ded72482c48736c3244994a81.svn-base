@@ -1,0 +1,109 @@
+package com.krt.framework.interceptor;
+
+import com.alibaba.fastjson.JSON;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.bean.ReturnCode;
+import com.krt.common.constant.GlobalConstant;
+import com.krt.common.session.SessionUser;
+import com.krt.common.util.ServletUtils;
+import com.krt.common.util.ShiroUtils;
+import com.krt.sys.entity.Token;
+import com.krt.sys.entity.User;
+import com.krt.sys.service.IRoleScopeService;
+import com.krt.sys.service.ITokenService;
+import com.krt.sys.service.IUserService;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.SecurityUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Date;
+import java.util.List;
+
+
+/**
+ * API权限(Token)验证 (登录)
+ *
+ * @author 刘威
+ * @version 1.0
+ * @date 2019年10月10日
+ */
+@Component
+public class ApiInterceptor extends HandlerInterceptorAdapter {
+    @Autowired
+    private ITokenService tokenService;
+
+    @Autowired
+    private IUserService userService;
+
+    @Autowired
+    private IRoleScopeService roleScopeService;
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        //从header中获取token
+        String accessToken = request.getHeader("accessToken");
+
+        //token为空
+        if (StringUtils.isBlank(accessToken)) {
+            ReturnCode rc = ReturnCode.ACCESS_TOKEN_NULL;
+            ServletUtils.printJson(response, JSON.toJSONString(ReturnBean.error(rc)));
+            return false;
+        }
+        //查询token信息
+        Token token = tokenService.selectEntityByAccessToken(accessToken);
+        if (token == null) {
+            //token不存在
+            ReturnCode rc = ReturnCode.ACCESS_TOKEN_ERROR;
+            ServletUtils.printJson(response, JSON.toJSONString(ReturnBean.error(rc)));
+            return false;
+        } else {
+            if (token.getExpireTime() == null) {
+                //token没有过期时间
+                return false;
+            }
+            if (!(new Date()).before(token.getExpireTime())) {
+                //token过期
+                ReturnCode rc = ReturnCode.ACCESS_TOKEN_EXPIRE;
+                ServletUtils.printJson(response, JSON.toJSONString(ReturnBean.error(rc)));
+                return false;
+            }
+        }
+
+        //area校验
+        String area = request.getParameter("area");
+        if (area != null && !"".equals(area)) {
+            area = area.trim();
+            User user = userService.selectById(token.getUserId());
+            if (user != null && area.equals(user.getArea())) {
+                return true;
+            } else {
+                ReturnCode rc = ReturnCode.INVALID_REQUEST;
+                rc.setMsg("当前用户的area不匹配");
+                ServletUtils.printJson(response, JSON.toJSONString(ReturnBean.error(rc)));
+                return false;
+            }
+        }
+
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+        if (sessionUser == null) {
+            //保存用户信息到session中
+            User user = userService.selectById(token.getUserId());
+            sessionUser = new SessionUser();
+            BeanUtils.copyProperties(user, sessionUser);
+            ShiroUtils.setSessionAttribute(GlobalConstant.SESSION_USER, sessionUser);
+            // 超时时间
+            SecurityUtils.getSubject().getSession().setTimeout(6 * 60 * 60 * 1000);
+            //数据权限
+            if (!sessionUser.isAdmin()) {
+                List<String> dataId = roleScopeService.selectUserDataScope(user);
+                ShiroUtils.setSessionAttribute(GlobalConstant.DATA_SCOPE, dataId);
+            }
+        }
+        return true;
+    }
+}

@@ -1,0 +1,226 @@
+package com.krt.gov.device.mapper;
+
+import com.krt.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.krt.gov.device.entity.GovDevice;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 设备映射层
+ *
+ * @author liuwei
+ * @version 1.0
+ * @date 2019年08月12日
+ */
+@Mapper
+public interface GovDeviceMapper extends BaseMapper<GovDevice> {
+
+    /**
+     * 根据设备id 获取设备的区域位置信息
+     *
+     * @param id
+     * @return
+     */
+    Map selectDevPosition(@Param("id") Integer id);
+
+    /**
+     * 设置设备的区域位置坐标
+     *
+     * @param x
+     * @param y
+     * @param id
+     */
+    void updateDevPosition(@Param("x") Integer x, @Param("y") Integer y, @Param("id") Integer id);
+
+    void updateStateByDeviceId(GovDevice device);
+
+    void updateStatusByDeviceId(@Param("deviceId") Long deviceId, @Param("port1") Integer port1, @Param("port2") Integer port2, @Param("port3") Integer port3, @Param("port4") Integer port4, @Param("port5") Integer port5);
+
+    void updateDataByDeviceId(@Param("deviceId") Long deviceId, @Param("data") String data);
+
+    void offLineAllDevice();
+
+
+    /**
+     * 根据条件获取设备列表
+     *
+     * @param groupId 分组ID
+     * @param status  设备状态
+     * @param area    设备所在地区
+     * @param hallId  设备所在大厅ID
+     * @return
+     */
+    List<Map> listDevicesByHallId(@Param("area") String area, @Param("hallId") Integer hallId,
+                                  @Param("status") Integer status, @Param("groupId") Integer groupId);
+
+    /**
+     * 设备布局接口查询设备状态
+     *
+     * @return
+     */
+    Map selectDeviceStatus(@Param("area") String area, @Param("hallId") Integer hallId);
+
+    /**
+     * 设备布局接口查询大厅下所有设备
+     *
+     * @return
+     */
+    List<Map> selectAllDevices(@Param("area") String area, @Param("hallId") Integer hallId);
+
+    /**
+     * 根据设备id查询设备详情信息
+     *
+     * @param id
+     * @return
+     */
+    Map selectDeviceById(Integer id);
+
+    /**
+     * 查询指定开关id
+     *
+     * @param deviceId
+     * @param port
+     * @return
+     */
+    Integer selectSwitchId(@Param("deviceId") Long deviceId, @Param("port") String port);
+
+    void updateBatchByIdPort(List<GovDevice> device);
+
+    /**
+     * 根据deviceId查找开关以外的设备的id
+     *
+     * @param deviceId
+     * @return
+     */
+    Integer selectByDeviceIdAndType(String deviceId);
+
+    List<GovDevice> selectByDeviceId(String deviceId);
+
+    /**
+     * 根据温湿度判断设备是否需要预警
+     *
+     * @param deviceId
+     * @param temp
+     * @param humi
+     * @return
+     */
+    Integer getWarningDeviceIdByTH(@Param("deviceId") Long deviceId, @Param("temp") Integer temp, @Param("humi") Integer humi);
+
+    /**
+     * 获得满足预警条件的开关id
+     *
+     * @param deviceId
+     * @param port1
+     * @param port2
+     * @param port3
+     * @param port4
+     * @param port5
+     * @return
+     */
+    List<Integer> getWarningSwitchId(@Param("deviceId") Long deviceId, @Param("port1") Integer port1, @Param("port2") Integer port2, @Param("port3") Integer port3, @Param("port4") Integer port4, @Param("port5") Integer port5);
+
+    /**
+     * 更改设备状态
+     *
+     * @param status
+     * @param id
+     */
+    void updateStatus(@Param("status") Integer status, @Param("id") Integer id);
+
+    /**
+     * 根据deviceId获取在预警规则中的开关id
+     *
+     * @param deviceId
+     * @return
+     */
+    List<Integer> selectSwitchIdOnWarning(Long deviceId);
+
+    List<Map> selectCodeBank(Map para);
+
+    /**
+     * 热敏打印机空纸初始化
+     *
+     * @param id
+     * @param disEmpty
+     */
+    Integer emptyPaperInitialization(@Param("id") Integer id, @Param("disEmpty") Integer disEmpty);
+
+    /**
+     * 热敏打印机满纸初始化
+     *
+     * @param id
+     * @param disFull
+     */
+    Integer fullPaperInitialization(@Param("id") Integer id, @Param("disFull") Integer disFull);
+
+    /**
+     * 热敏打印机重置
+     *
+     * @param id
+     */
+    Integer resetPaperInitialization(Integer id);
+
+    /**
+     * 获取data
+     *
+     * @param id
+     * @return
+     */
+    String getData(Integer id);
+
+    /**
+     * 获取打印机状态
+     *
+     * @param id
+     */
+    GovDevice getPrinterInfo(Integer id);
+
+    /**
+     * 更新打印机信息
+     *
+     * @param machine  打印机唯一标识
+     * @param deviceId 设备id
+     * @param data     打印机数据
+     */
+    Integer updatePrinterInfo(@Param("machine") String machine, @Param("deviceId") Long deviceId, @Param("data") String data);
+
+    /**
+     * 非io类子设备获取设备信息
+     *
+     * @param machine  子设备唯一标识
+     * @param deviceId 设备id
+     * @return
+     */
+    GovDevice getNonIoDevice(@Param("deviceId") Long deviceId, @Param("port") String port, @Param("machine") String machine);
+
+    /**
+     * io类子设备获取设备信息
+     *
+     * @param deviceId 设备id
+     * @return
+     */
+    GovDevice getIoDevice(@Param("deviceId") Long deviceId, @Param("port") String port);
+
+    /**
+     * 设备分组获取设备
+     *
+     * @param area
+     * @param groupId
+     * @return
+     */
+    List<GovDevice> listDevicesByGroupId(@Param("area") String area, @Param("groupId") Integer groupId);
+
+    /**
+     * 更新设备数据
+     *
+     * @param data
+     * @param deviceId
+     * @param port
+     * @param machine
+     */
+    void updateData(@Param("data") String data, @Param("deviceId") Long deviceId, @Param("port") String port, @Param("machine") String machine);
+
+}

@@ -1,0 +1,402 @@
+package com.krt.api.controller.html;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.krt.api.controller.constant.CommonConst;
+import com.krt.common.annotation.KrtIgnoreAuth;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.validator.Assert;
+import com.krt.gov.common.beans.SendMessage;
+import com.krt.gov.common.constant.CommonApiConst;
+import com.krt.gov.common.utils.TopicNameUtil;
+import com.krt.gov.device.entity.GovDevice;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.ir.constant.Constants;
+import com.krt.gov.ir.core.IRDecode;
+import com.krt.gov.ir.entity.ACStatus;
+import com.krt.gov.ir.utils.CommandIdUtil;
+import com.krt.gov.operationLog.service.IGovOperationLogService;
+import com.krt.gov.thread.CallbackThread;
+import io.netty.handler.codec.mqtt.MqttQoS;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+
+/**
+ * @author 郭明德
+ * @description 设备布局接口
+ * @date 2019/8/20 16:31:20
+ */
+@Slf4j
+@Controller
+@RequestMapping("api/layout")
+@Api(tags = "B、设备布局接口")
+public class LayoutDataApi {
+
+    /**
+     * 热敏打印机groupId
+     */
+    private static final Integer GROUP_THERMAL_PRINTER = 7;
+    /**
+     * 电表groupId
+     */
+    private static final Integer GROUP_AMMETER = 8;
+    /**
+     * 取号机groupId
+     */
+    private static final Integer GROUP_NUMBERING_MACHINE = 6;
+
+    @Autowired
+    private IGovDeviceService deviceService;
+
+    @Autowired
+    private IGovOperationLogService govOperationLogService;
+
+//    @KrtIgnoreAuth
+//    @GetMapping("CityLayout")
+//    @ApiOperation(value = "城市区县接口")
+//    @ResponseBody
+//    @ApiImplicitParams({
+//    })
+//    public ReturnBean DeviceOverData(){
+//        List lists = new ArrayList(6);
+//        JSONObject json = new JSONObject();
+//        json.put("id", 1); json.put("name", "章贡区"); json.put("id", 0);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 2); json.put("name", "南康区"); json.put("id", 0);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 3); json.put("name", "赣县"); json.put("id", 0);
+//        lists.add(json);
+//
+//        return ReturnBean.ok(lists);
+//    }
+
+
+//    @KrtIgnoreAuth
+//    @GetMapping("DeviceAddress")
+//    @ApiOperation(value = "设备地址接口")
+//    @ResponseBody
+//    @ApiImplicitParams({
+//    })
+//    public ReturnBean DeviceAddress(){
+//        List lists = new ArrayList(4);
+//        JSONObject json = new JSONObject();
+//        json.put("id", 1); json.put("name", "一楼");
+//        // 层级关系排版显示
+//        json.put("_name", "一楼"); json.put("pid", 0);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 1); json.put("name", "一楼展厅"); json.put("_name", "   一楼展厅"); json.put("pid", 1);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 1); json.put("name", "一楼大厅"); json.put("_name", "   一楼大厅"); json.put("pid", 1);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 2); json.put("name", "二楼"); json.put("_name", "二楼"); json.put("pid", 0);
+//        lists.add(json); json.clear();
+//
+//        return ReturnBean.ok(lists);
+//    }
+
+
+//    @KrtIgnoreAuth
+//    @GetMapping("DeviceRegion")
+//    @ApiOperation(value = "设备所在区域")
+//    @ResponseBody
+//    @ApiImplicitParams({
+//    })
+//    public ReturnBean DeviceRegion(){
+//        List lists = new ArrayList(6);
+//        JSONObject json = new JSONObject();
+//        json.put("id", 1); json.put("name", "1号大厅"); json.put("id", 0);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 2); json.put("name", "2号大厅"); json.put("id", 0);
+//        lists.add(json); json.clear();
+//
+//        json.put("id", 3); json.put("name", "3号大厅"); json.put("id", 0);
+//        lists.add(json);
+//
+//        return ReturnBean.ok(lists);
+//    }
+
+
+    @KrtIgnoreAuth
+    @GetMapping("show")
+    @ApiOperation(value = "设备的区域平面图")
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "String", name = "area", value = "区域编码", required = true),
+            @ApiImplicitParam(paramType = "query", dataType = "Integer", name = "hallID", value = "大厅ID", required = true)
+    })
+    public ReturnBean show(String area, Integer hallId) {
+        Assert.isNull(area, "area不能为空");
+        Assert.isNull(hallId, "hallId不能为空");
+        JSONObject data = deviceService.selectAllDevices(area, hallId);
+        return ReturnBean.ok(data);
+    }
+
+    @KrtIgnoreAuth
+    @GetMapping("detail")
+    @ApiOperation(value = "单个设备详情接口")
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "id", value = "设备id", required = true)
+    })
+    public ReturnBean detail(@RequestParam("id") Integer id) {
+        JSONObject data = deviceService.selectDeviceById(id);
+        if (data.size() == 0) {
+            return ReturnBean.error("设备不存在");
+        }
+        data.put("energize", (int) (Math.random() * 1));
+        data.put("open", (int) (Math.random() * 1));
+        data.put("cumulativeEnergyConsumption", (int) (Math.random() * 100 + 100));
+        data.put("cumulativeDuration", (int) (Math.random() * 100 + 400));
+        //取号机独有字段
+        if (GROUP_NUMBERING_MACHINE.equals(data.get("group") + "")) {
+            data.put("outOfPaper", (int) (Math.random() * 1));
+            data.put("network", (int) (Math.random() * 1));
+            data.put("networkSpeed", (int) (Math.random() * 100 + 100));
+            data.put("openTheApp", "叫号程序已开启、语音程序已开启、扫描程序未开启");
+            int[] ram = {4, 8, 16};
+            data.put("ram", ram[new Random().nextInt(ram.length)]);
+            data.put("ramUsageRate", (int) (Math.random() * 50 + 50));
+            double[] cpu = {3.20, 2.60, 2.40};
+            data.put("cpu", cpu[new Random().nextInt(ram.length)]);
+            data.put("cpuUsageRate", (int) (Math.random() * 50 + 50));
+            int[] hardDisk = {64, 128, 256, 500};
+            data.put("hardDisk", hardDisk[new Random().nextInt(ram.length)]);
+            data.put("hardDiskUsageRate", (int) (Math.random() * 50 + 50));
+        }
+        //热敏打印机字段
+        if (GROUP_THERMAL_PRINTER.equals(data.get("group") + "")) {
+            Double disPercent = deviceService.getDisPercent(id);
+            data.put("disPercent", disPercent);
+        }
+        return ReturnBean.ok(data);
+    }
+
+
+    @KrtIgnoreAuth
+    @PostMapping("power")
+    @ApiOperation(value = "设备单个开关接口")
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Integer", name = "id", value = "设备id"),
+            @ApiImplicitParam(paramType = "query", dataType = "Integer", name = "power", value = "开关状态 0开 1关")
+    })
+    public ReturnBean power(@RequestParam("id") Integer id, @RequestParam("power") Integer power) {
+        GovDevice device = deviceService.selectById(id);
+        if (device != null) {
+            if (CommonConst.DEVICE_TYPE_SWITCH.equals(device.getType())) {
+                if ((System.currentTimeMillis() - device.getActionTime().getTime()) > CommonApiConst.ACTION_LIMIT * 1000) {
+                    JSONObject action = JSONObject.parseObject(device.getAction());
+
+                    Map cmd = new HashMap();
+                    cmd.put("CMD", 21);
+                    Integer[] ctrlArr = new Integer[5];
+                    Integer[] timeArr = new Integer[5];
+                    for (int i = 0; i < 5; i++) {
+                        if (i != Integer.parseInt(device.getPort()) - 1) {
+                            ctrlArr[i] = -1;
+                            timeArr[i] = -1;
+                        } else {
+                            if (!"0".equals(action.get("time")+"")){
+                                //软开关时
+                                ctrlArr[i]=1;
+                            }else {
+                                ctrlArr[i] = power == 0 ? 1 : 0;
+                            }
+                            timeArr[i] = Integer.valueOf(action.getString("time"));
+                        }
+                    }
+                    cmd.put("CTRL", ctrlArr);
+                    cmd.put("TIME", timeArr);
+
+                    IdentityHashMap map = new IdentityHashMap();
+                    map.put(new String("productId"), device.getProductId());
+                    map.put(new String("deviceId"), device.getDeviceId());
+                    map.put(new String("topicName"), TopicNameUtil.cmdSet(device.getProductId(), device.getDeviceId()));
+                    map.put(new String("topicContent"), JSONObject.toJSONString(cmd));
+
+                    CallbackThread.add(CommonConst.URL_CMD, map);
+
+                    action.put("onOff", String.valueOf(power));
+
+                    device.setAction(action.toString());
+                    //                device.setStatus(power == 0 ? 1 : 0);
+                    device.setActionTime(new Date());
+                    deviceService.updateById(device);
+
+                    //添加操作日志
+                    govOperationLogService.insertLog(device.getDeviceId(), device.getProductId(), device.getName(), device.getPort(), action.toString());
+
+                } else {
+                    return ReturnBean.error("操作太频繁");
+                }
+            } else if (CommonConst.DEVICE_TYPE_AC.equals(device.getType())) {
+                JSONObject action = JSONObject.parseObject(device.getAction());
+
+                Integer categoryID = Constants.CategoryID.AIR_CONDITIONER.getValue();
+                Integer BinaryType = Constants.BinaryType.TYPE_HEXDECIMAL.getValue();
+                String fileName = "irda_" + device.getFileName() + ".bin";
+                Integer keyCode = 0;
+                ACStatus acStatus = new ACStatus(
+                        power,
+                        Integer.valueOf(action.getString("mode")),
+                        Integer.valueOf(action.getString("temp")) - 16,
+                        Integer.valueOf(action.getString("windSpeed")),
+                        0,
+                        0,
+                        0,
+                        0
+                );
+                Integer acSwing = 0;
+                Integer ver = CommandIdUtil.commandId(device.getDeviceId());
+
+                String irContent = IRDecode.decode(
+                        categoryID,
+                        BinaryType,
+                        fileName,
+                        keyCode,
+                        acStatus,
+                        acSwing,
+                        ver
+                );
+                log.info(irContent);
+
+                IdentityHashMap map = new IdentityHashMap();
+                map.put(new String("productId"), device.getProductId());
+                map.put(new String("deviceId"), device.getDeviceId());
+                map.put(new String("topicName"), TopicNameUtil.cmdSet(device.getProductId(), device.getDeviceId()));
+                map.put(new String("topicContent"), irContent);
+                log.info(map.toString());
+
+                CallbackThread.add(CommonConst.URL_CMD, map);
+
+                action.put("onOff", String.valueOf(power));
+                device.setAction(action.toString());
+                device.setStatus(power == 0 ? 1 : 0);
+                deviceService.updateById(device);
+
+                //添加操作日志
+                govOperationLogService.insertLog(device.getDeviceId(), device.getProductId(), device.getName(), device.getPort(), action.toString());
+            }
+            return ReturnBean.ok();
+        } else {
+            return ReturnBean.error("设备不存在");
+        }
+    }
+
+    @KrtIgnoreAuth
+    @PostMapping("ac")
+    @ApiOperation(value = "空调设备控制接口")
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "id", value = "设备id"),
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "power", value = "开关状态 0开 1关"),
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "mode", value = "模式"),
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "temp", value = "温度"),
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "windSpeed", value = "风速"),
+    })
+    public ReturnBean ac(
+            @RequestParam("id") Integer id,
+            @RequestParam("power") Integer power,
+            @RequestParam("mode") Integer mode,
+            @RequestParam("temp") Integer temp,
+            @RequestParam("windSpeed") Integer windSpeed
+    ) {
+        GovDevice device = deviceService.selectById(id);
+        if (device != null) {
+            Integer categoryID = Constants.CategoryID.AIR_CONDITIONER.getValue();
+            Integer BinaryType = Constants.BinaryType.TYPE_HEXDECIMAL.getValue();
+            String fileName = "irda_" + device.getFileName() + ".bin";
+            Integer keyCode = 0;
+            ACStatus acStatus = new ACStatus(
+                    power,
+                    mode,
+                    temp - 16,
+                    windSpeed,
+                    0,
+                    0,
+                    0,
+                    0
+            );
+            Integer acSwing = 0;
+            Integer ver = CommandIdUtil.commandId(device.getDeviceId());
+
+            String irContent = IRDecode.decode(
+                    categoryID,
+                    BinaryType,
+                    fileName,
+                    keyCode,
+                    acStatus,
+                    acSwing,
+                    ver
+            );
+//            String irContent = "{}";
+            log.info(irContent);
+
+            IdentityHashMap map = new IdentityHashMap();
+            map.put(new String("productId"), device.getProductId());
+            map.put(new String("deviceId"), device.getDeviceId());
+            map.put(new String("topicName"), TopicNameUtil.cmdSet(device.getProductId(), device.getDeviceId()));
+            map.put(new String("topicContent"), irContent);
+
+            CallbackThread.add(CommonConst.URL_CMD, map);
+
+            JSONObject action = JSONObject.parseObject(device.getAction());
+            action.put("onOff", String.valueOf(power));
+            action.put("mode", String.valueOf(mode));
+            action.put("temp", String.valueOf(temp));
+            action.put("windSpeed", String.valueOf(windSpeed));
+            device.setAction(action.toString());
+            Integer status = power == 0 ? 1 : 0;
+            device.setStatus(status);
+            device.setActionTime(new Date());
+            deviceService.updateById(device);
+
+            //添加操作日志
+            govOperationLogService.insertLog(device.getDeviceId(), device.getProductId(), device.getName(), device.getPort(), action.toString());
+
+            return ReturnBean.ok();
+        } else {
+            return ReturnBean.error("设备不存在");
+        }
+    }
+
+//    private JSONObject mergeVerMessage(Long deviceId, Integer cmd, Integer[] newCtrl, Integer[] newTime, Integer ver){
+//        SendMessage message = CommonConst.verMessages.get(deviceId);
+//        if( message != null ){
+//            if( ver == 0 || ver > message.getVer() ) {
+//                String oldContent = message.getTopicContent();
+//                JSONObject oldData = JSONObject.parseObject(oldContent);
+//                JSONArray oldCtrl = oldData.getJSONArray("CTRL");
+//                JSONArray oldTime = oldData.getJSONArray("TIME");
+//
+//                for (int i=0;i<oldCtrl.size();i++){
+//                    if( oldCtrl.getInteger(i) != -1 && newCtrl[i] == -1 ){
+//                        newCtrl[i] = oldCtrl.getInteger(i);
+//                        newTime[i] = oldTime.getInteger(i);
+//                    }
+//                }
+//            }
+//        }
+//        JSONObject retval = new JSONObject(true);
+//        retval.put("CMD", cmd);
+//        retval.put("CTRL", newCtrl);
+//        retval.put("TIME", newTime);
+//        retval.put("VER", ver);
+//        return retval;
+//    }
+
+}

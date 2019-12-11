@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.warning.mapper.GovStaffMapper">
+
+    <sql id="Base_Column_List">
+        id,names,sex,cards,photo,job_num,org_code,org_name,job,office_tel,person_tel,type,job_type,win_id,password,salary_num,user_uuid,is_leave,job_time,is_perfect,chief,account,salt,deposit_bank,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询人员信息表列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.warning.entity.GovStaff">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_staff where 1=1
+            <if test="names !=null and names!=''">
+                    and names like concat('%',#{names},'%')
+            </if>
+            <if test="job !=null and job!=''">
+                        and job = #{job}
+            </if>
+            <if test="personTel !=null and personTel!=''">
+                    and person_tel like concat('%',#{personTel},'%')
+            </if>
+    </select>
+
+</mapper>
+

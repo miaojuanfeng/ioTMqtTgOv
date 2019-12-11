@@ -1,0 +1,396 @@
+package com.krt.gov.device.service.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.krt.common.base.BaseServiceImpl;
+import com.krt.common.bean.PageHelper;
+import com.krt.common.bean.Query;
+import com.krt.gov.common.constant.CommonApiConst;
+import com.krt.gov.common.utils.CommonUtil;
+import com.krt.gov.device.entity.GovDevice;
+import com.krt.gov.device.mapper.GovDeviceMapper;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.hall.entity.GovHall;
+import com.krt.gov.hall.mapper.GovHallMapper;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 设备服务接口实现层
+ *
+ * @author liuwei
+ * @version 1.0
+ * @date 2019年08月12日
+ */
+@Service
+public class GovDeviceServiceImpl extends BaseServiceImpl<GovDeviceMapper, GovDevice> implements IGovDeviceService {
+
+    @Resource
+    private GovDeviceMapper govDeviceMapper;
+
+    @Resource
+    private GovHallMapper govHallMapper;
+
+    /**
+     * 根据设备id 获取设备的区域位置信息
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Map selectDevPosition(Integer id) {
+        return govDeviceMapper.selectDevPosition(id);
+    }
+
+    /**
+     * 设置设备的区域位置坐标
+     *
+     * @param x
+     * @param y
+     * @param id
+     */
+    @Override
+    public void updateDevPosition(Integer x, Integer y, Integer id) {
+        govDeviceMapper.updateDevPosition(x, y, id);
+    }
+
+    @Override
+    public void updateStateByDeviceId(GovDevice device) {
+        govDeviceMapper.updateStateByDeviceId(device);
+    }
+
+    @Override
+    public void updateStatusByDeviceId(Long deviceId, Integer port1, Integer port2, Integer port3, Integer port4, Integer port5) {
+        govDeviceMapper.updateStatusByDeviceId(deviceId, port1, port2, port3, port4, port5);
+    }
+
+    @Override
+    public void updateDataByDeviceId(Long deviceId, String data) {
+        govDeviceMapper.updateDataByDeviceId(deviceId, data);
+    }
+
+    @Override
+    public void offLineAllDevice() {
+        govDeviceMapper.offLineAllDevice();
+    }
+
+
+    @Override
+    public List listDevicesForDeviceApi(String area, Integer hallId, Integer status, Integer groupId) {
+        List<Map> list = govDeviceMapper.listDevicesByHallId(area, hallId, status, groupId);
+        for (Map map :
+                list) {
+            JSONObject action = JSONObject.parseObject(map.get("action") + "");
+            map.put("action", action);
+            map.put("onOff", Integer.valueOf(action.getString("onOff")));
+            map.put("icon",CommonUtil.getIconUrl(map.get("icon")+""));
+        }
+
+        return list;
+    }
+
+
+    @Override
+    public JSONObject selectAllDevices(String area, Integer hallId) {
+        //所有设备信息
+        List<Map> maps = govDeviceMapper.selectAllDevices(area, hallId);
+        //设备状态
+        Map deviceStatus = govDeviceMapper.selectDeviceStatus(area, hallId);
+        //大厅信息
+        GovHall govHall = govHallMapper.selectById(hallId);
+
+        //解决数字带引号问题
+        Integer total = Integer.parseInt(deviceStatus.get("total") + "");
+        deviceStatus.put("total", total);
+
+        //创建list集合保存设备
+        List list = new ArrayList();
+        for (Map map : maps) {
+            JSONObject action = JSONObject.parseObject((String) map.get("action"));
+            map.put("onOff", Integer.valueOf(action.getString("onOff")));
+            map.remove("action");
+            //将坐标缩小1百倍
+            if (map.get("xaxis") != null) {
+                Double x = Double.parseDouble((map.get("xaxis") + ""));
+                Double xaxis = x / 100;
+                map.put("xaxis", xaxis);
+            } else {
+                map.put("xaxis", 0);
+            }
+            if (map.get("yaxis") != null) {
+                Double y = Double.parseDouble((map.get("yaxis") + ""));
+                Double yaxis = y / 100;
+                map.put("yaxis", yaxis);
+            } else {
+                map.put("yaxis", 0);
+            }
+            map.put("icon", CommonUtil.getIconUrl(map.get("icon") + ""));
+            //将map转为JSONObject
+            JSONObject jsonObject = JSONObject.parseObject(JSON.toJSONString(map));
+            list.add(jsonObject);
+        }
+        //将设备集合保存到设备信息map中,并将map转为json对象
+        deviceStatus.put("equipment_icon", list);
+        JSONObject deviceJSONObject = JSONObject.parseObject(JSON.toJSONString(deviceStatus));
+        deviceJSONObject.put("layout_img", CommonUtil.getLayoutUrl(govHall.getLayout()));
+        return deviceJSONObject;
+    }
+
+    /**
+     * 设备布局接口根据id查询设备详情信息
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public JSONObject selectDeviceById(Integer id) {
+        Map map = govDeviceMapper.selectDeviceById(id);
+        if (map == null) {
+            return new JSONObject();
+        }
+        map.put("actionLimit", CommonApiConst.ACTION_LIMIT);
+        if (map.get("action") != null) {
+            String actionStr = (String) map.get("action");
+            JSONObject actionJson = JSONObject.parseObject(actionStr);
+            map.put("action", actionJson);
+        }
+        if (map.get("info") != null) {
+            String infoStr = (String) map.get("info");
+            JSONObject infoJson = JSONObject.parseObject(infoStr);
+            infoJson.remove("sweepingWind");
+            infoJson.remove("function");
+            infoJson.remove("sensitivity");
+            map.put("info", infoJson);
+        }
+        if (map.get("data") != null) {
+            String actionStr = (String) map.get("data");
+            JSONObject actionJson = JSONObject.parseObject(actionStr);
+            map.put("data", actionJson);
+        }
+        JSONObject jsonObject = JSONObject.parseObject(JSON.toJSONString(map));
+        return jsonObject;
+    }
+
+    /**
+     * 平台大厅设备状态查询
+     *
+     * @return
+     */
+    @Override
+    public JSONObject selectDeviceStatus(String area) {
+        Map deviceStatus = govDeviceMapper.selectDeviceStatus(area, null);
+        //解决出现引号问题
+        Integer total = Integer.parseInt(deviceStatus.get("total") + "");
+        deviceStatus.put("total", total);
+        JSONObject jsonObject = JSONObject.parseObject(JSON.toJSONString(deviceStatus));
+        return jsonObject;
+    }
+
+    @Override
+    public void updateBatchByIdPort(List<GovDevice> device) {
+        govDeviceMapper.updateBatchByIdPort(device);
+    }
+
+    /**
+     * 判断deviceId 开关可以相同(开关根据deviceId和port区分) 空调不能相同 返回true表示不能添加和修改
+     *
+     * @param govDevice
+     * @return
+     */
+    @Override
+    public boolean haveTheDeviceId(GovDevice govDevice) {
+        List<GovDevice> govDeviceList = govDeviceMapper.selectByDeviceId(govDevice.getDeviceId() + "");
+        //deviceId未使用
+        if (govDeviceList.size() == 0) {
+            return false;
+        }
+        //添加时
+        if (govDevice.getId() == null) {
+            //非开关时
+            if (govDevice.getType() != 1) {
+                return true;
+            }
+
+            //开关时
+            //判断是否有非开关设备使用此deviceId
+            for (GovDevice device :
+                    govDeviceList) {
+                if (device.getPort() == null) {
+                    return true;
+                }
+            }
+            //判断是否存在此开关
+            Integer integer = govDeviceMapper.selectSwitchId(govDevice.getDeviceId(), govDevice.getPort());
+            if (integer == null) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        //修改时
+        //非开关时
+        if (govDevice.getType() != 1) {
+            Integer integer = govDeviceList.get(0).getId();
+            if (integer.equals(govDevice.getId())) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        //开关时
+        //判断是否有非开关设备使用此deviceId
+        for (GovDevice device :
+                govDeviceList) {
+            if (device.getPort() == null) {
+                return true;
+            }
+        }
+        //判断是否存在此开关
+        Integer integer = govDeviceMapper.selectSwitchId(govDevice.getDeviceId(), govDevice.getPort());
+        if (integer == null) {
+            return false;
+        } else {
+            if (integer.equals(govDevice.getId())) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+    }
+
+
+    @Override
+    public void changeAirConditioningStatus(Long deviceId, Integer temp, Integer humi) {
+        Integer id = govDeviceMapper.getWarningDeviceIdByTH(deviceId, temp, humi);
+        //存在需要预警的设备
+        if (id != null) {
+            //满足预警的前置条件设备，status修改状态为2(预警状态)
+            govDeviceMapper.updateStatus(2, id);
+        } else {
+            //如果不满足预警条件，当前设备status又为2，说明预警结束，修改status为action中onOff的开关状态
+            List<GovDevice> govDevices = govDeviceMapper.selectByDeviceId(deviceId + "");
+            if (govDevices.size() == 1) {
+                Integer status = govDevices.get(0).getStatus();
+                if (status == 2) {
+                    String action = govDevices.get(0).getAction();
+                    if (action != null || action.equals("")) {
+                        Integer integer = govDevices.get(0).getId();
+                        JSONObject object = JSONObject.parseObject(action);
+                        String onOff = object.getString("onOff");
+                        govDeviceMapper.updateStatus(Integer.parseInt(onOff), integer);
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+    @Override
+    public void changeSwitchStatus(Long deviceId, Integer port1, Integer port2, Integer port3, Integer port4, Integer port5) {
+        //满足预警条件的开关id
+        List<Integer> warningSwitchId = govDeviceMapper.getWarningSwitchId(deviceId, port1, port2, port3, port4, port5);
+        //在所有启用的预警规则中关联的当前deviceId对应的开关
+        List<Integer> idList = govDeviceMapper.selectSwitchIdOnWarning(deviceId);
+        for (Integer id :
+                warningSwitchId) {
+            //满足预警的前置条件设备，status修改状态为2(预警状态)
+            govDeviceMapper.updateStatus(2, id);
+            //排除满足预警条件的开关id
+            idList.remove(id);
+        }
+
+        //如果不满足预警条件，当前设备status又为2，说明预警结束，修改status为action中onOff的开关状态
+        for (Integer integer :
+                idList) {
+            GovDevice govDevice = govDeviceMapper.selectById(integer);
+            if (govDevice.getStatus() == 2) {
+                String action = govDevice.getAction();
+                JSONObject object = JSONObject.parseObject(action);
+                govDeviceMapper.updateStatus(Integer.parseInt(object.getString("onOff")), integer);
+            }
+        }
+    }
+
+    /**
+     * 根据设备类型和品牌选择码库
+     *
+     * @return
+     */
+    @Override
+    public IPage selectCodeBank(Map para) {
+        Query query = new Query(para);
+        Page page = query.getPage();
+        PageHelper.startPage(page);
+        List list = govDeviceMapper.selectCodeBank(para);
+        page.setRecords(list);
+        return page;
+    }
+
+    @Override
+    public void emptyPaperInitialization(Integer id) {
+        String data = baseMapper.getData(id);
+        JSONObject jsonObject = JSONObject.parseObject(data);
+        Integer dis = (Integer) jsonObject.get("DIS");
+        baseMapper.emptyPaperInitialization(id, dis);
+    }
+
+    @Override
+    public void fullPaperInitialization(Integer id) {
+        String data = baseMapper.getData(id);
+        JSONObject jsonObject = JSONObject.parseObject(data);
+        Integer dis = (Integer) jsonObject.get("DIS");
+        baseMapper.fullPaperInitialization(id, dis);
+    }
+
+    @Override
+    public void resetPaperInitialization(Integer id) {
+        baseMapper.resetPaperInitialization(id);
+    }
+
+    @Override
+    public GovDevice getPrinterInfo(Integer id) {
+        return baseMapper.getPrinterInfo(id);
+    }
+
+    @Override
+    public Integer updatePrinterInfo(GovDevice govDevice) {
+        return baseMapper.updatePrinterInfo(govDevice.getMachine(), govDevice.getDeviceId(), govDevice.getData());
+    }
+
+    @Override
+    public boolean printerCheck(GovDevice govDevice) {
+        GovDevice device = baseMapper.getPrinterByMachineAndDeviceId(govDevice.getMachine(), govDevice.getDeviceId());
+        if (device == null) {
+            return true;
+        }
+
+        //添加时
+        if (govDevice.getId() == null) {
+            return false;
+        }
+
+        //修改时可以相同
+        if ((govDevice.getId()).equals(device.getId())) {
+            return true;
+        }
+
+        return false;
+
+    }
+
+    @Override
+    public List<GovDevice> listDevicesByGroupId(String area, Integer groupId) {
+        return baseMapper.listDevicesByGroupId(area, groupId);
+    }
+}

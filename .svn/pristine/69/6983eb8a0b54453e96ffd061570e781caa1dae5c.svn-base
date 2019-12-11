@@ -1,0 +1,285 @@
+package com.krt.api.controller.html;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.krt.api.controller.constant.CommonConst;
+import com.krt.common.annotation.KrtIgnoreAuth;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.util.StringUtils;
+import com.krt.gov.common.constant.CommonApiConst;
+import com.krt.gov.common.utils.CommonUtil;
+import com.krt.gov.common.utils.TopicNameUtil;
+import com.krt.gov.device.entity.GovDevice;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.ir.constant.Constants;
+import com.krt.gov.ir.core.IRDecode;
+import com.krt.gov.ir.entity.ACStatus;
+import com.krt.gov.ir.utils.CommandIdUtil;
+import com.krt.gov.operationLog.service.IGovOperationLogService;
+import com.krt.gov.strategy.service.IDeviceStrategyService;
+import com.krt.gov.thread.CallbackThread;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * @author 郭明德
+ * @description 场景管理接口
+ * @date 2019/8/26 14:40:50
+ */
+@Slf4j
+@Controller
+@RequestMapping("api/scene")
+@Api(tags = "D、场景管理接口")
+public class SceneManageApi{
+
+    @Autowired
+    private IDeviceStrategyService deviceStrategyService;
+
+    @Autowired
+    private IGovDeviceService deviceService;
+
+    @Autowired
+    private IGovOperationLogService govOperationLogService;
+
+    @KrtIgnoreAuth
+    @GetMapping("strategy")
+    @ApiOperation(value = "策略列表接口")
+    @ResponseBody
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "query", dataType = "Long", name = "area", value = "区域编码")
+    })
+    public ReturnBean StrategyList(String area){
+        List<Map> strategyList = deviceStrategyService.selectManualStrategy(area);
+        JSONArray retval = new JSONArray();
+        for (Map strategy : strategyList) {
+            JSONObject temp = new JSONObject();
+            temp.put("id", ((Long)strategy.get("id")).intValue());
+            temp.put("name", (String)strategy.get("strategyTypeName"));
+            Integer status = (Integer)strategy.get("status");
+            if(status.equals(CommonConst.STRATEGY_STATUS_ENABLE)) {
+                temp.put("status", "启用");
+            }else{
+                temp.put("status", "禁用");
+            }
+            temp.put("relation", ((Long)strategy.get("num")).intValue());
+            temp.put("icon", CommonUtil.getIconUrl("strategy.png"));
+            retval.add(temp);
+        }
+        return ReturnBean.ok(retval);
+    }
+
+    @KrtIgnoreAuth
+    @GetMapping("device")
+    @ApiOperation(value = "策略设备列表")
+    @ResponseBody
+    @ApiImplicitParams({
+        @ApiImplicitParam(paramType = "query", dataType = "Long", name = "strategyId", value = "策略ID")
+    })
+    public ReturnBean SceneDeviceList(@RequestParam("strategyId") Integer strategyId){
+        List<Map> deviceList = deviceStrategyService.selectManualDevice(strategyId);
+        JSONArray retval = new JSONArray();
+        for (Map device : deviceList) {
+            JSONObject temp = new JSONObject();
+            Integer deviceType = (Integer)device.get("type");
+            temp.put("id", (Integer)device.get("dId"));
+            temp.put("type", deviceType);
+            temp.put("name", device.get("deviceName"));
+            temp.put("status", (Integer)device.get("deviceStatus"));
+            temp.put("address", (String)device.get("address"));
+            JSONObject action = JSONObject.parseObject((String)device.get("deviceAction"));
+            temp.put("onOff", Integer.valueOf(action.getString("onOff")));
+            temp.put("actionLimit", CommonApiConst.ACTION_LIMIT);
+//            if( DEVICE_STATUS_OFF.equals(status) ) {
+//                temp.put("status", "未开启");
+//            }else if( DEVICE_STATUS_ON.equals(status) ){
+//                temp.put("status", "已开启");
+//            }else if( DEVICE_STATUS_WARNING.equals(status) ){
+//                temp.put("status", "预警");
+//            }
+//            temp.put("energy", 123);
+            if( Integer.valueOf(String.valueOf(device.get("type"))) == 1 ) {
+                temp.put("icon", CommonUtil.getIconUrl("light.png"));
+            }else if( Integer.valueOf(String.valueOf(device.get("type"))) == 2 ){
+                temp.put("icon", CommonUtil.getIconUrl("ac.png"));
+            }
+            if( CommonConst.DEVICE_TYPE_AC.equals(deviceType) ) {
+                temp.put("temp", Integer.valueOf(action.getString("temp")));
+                Integer mode = Integer.valueOf(action.getString("mode"));
+                if( CommonConst.AC_MODEL_COOL.equals(mode) ) {
+                    temp.put("mode", "制冷");
+                }else if( CommonConst.AC_MODEL_HOT.equals(mode) ){
+                    temp.put("mode", "制热");
+                }else if( CommonConst.AC_MODEL_AUTO.equals(mode) ){
+                    temp.put("mode", "自动");
+                }else if( CommonConst.AC_MODEL_WIND.equals(mode) ){
+                    temp.put("mode", "自然风");
+                }else if( CommonConst.AC_MODEL_WET.equals(mode) ){
+                    temp.put("mode", "除湿");
+                }
+                Integer windSpeed = Integer.valueOf(action.getString("windSpeed"));
+                if( CommonConst.AC_WIND_AUTO.equals(windSpeed) ) {
+                    temp.put("windSpeed", "自动");
+                }else if( CommonConst.AC_WIND_LOW.equals(windSpeed) ){
+                    temp.put("windSpeed", "低速");
+                }else if( CommonConst.AC_WIND_MIDDLE.equals(windSpeed) ){
+                    temp.put("windSpeed", "中速");
+                }else if( CommonConst.AC_WIND_HIGH.equals(windSpeed) ){
+                    temp.put("windSpeed", "高速");
+                }
+            }
+            retval.add(temp);
+        }
+        return ReturnBean.ok(retval);
+    }
+
+    @KrtIgnoreAuth
+    @PostMapping("batchPower")
+    @ApiOperation(value = "所有设备一键启动关闭")
+    @ResponseBody
+    @ApiImplicitParams({
+        @ApiImplicitParam(paramType = "query", dataType = "Long", name = "strategyId", value = "策略ID"),
+        @ApiImplicitParam(paramType = "query", dataType = "Long", name = "power", value = "开关状态 0开 1关")
+    })
+    public ReturnBean DeviceBatchPower(
+            @RequestParam("strategyId") Integer strategyId,
+            @RequestParam("power") Integer power){
+        List<Map> deviceList = deviceStrategyService.selectManualDevice(strategyId);
+        List<GovDevice> devices = new ArrayList<>();
+        //
+//        List<String> acDeviceId = new ArrayList<>();
+//        List<String> power = new ArrayList<>();
+//        List<String> mode = new ArrayList<>();
+//        List<String> temp = new ArrayList<>();
+//        List<String> windSpeed = new ArrayList<>();
+        //
+//        List<String> swtDeviceId = new ArrayList<>();
+//        List<String> ctrl = new ArrayList<>();
+//        List<String> onOff = new ArrayList<>();
+//        List<String> time = new ArrayList<>();
+        //
+        IdentityHashMap map = new IdentityHashMap();
+        //
+        for (Map device : deviceList) {
+            Integer deviceType = (Integer)device.get("type");
+            if( CommonConst.DEVICE_TYPE_SWITCH.equals(deviceType) ){
+                String strDate = String.valueOf(device.get("actionTime"));
+                SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date actionTime = null;
+                try {
+                    actionTime = sDateFormat.parse(strDate);
+                } catch(ParseException px) {
+                    log.info(px.getMessage());
+                }
+                if( (System.currentTimeMillis() - actionTime.getTime()) > CommonApiConst.ACTION_LIMIT*1000 ) {
+                    JSONObject action = JSONObject.parseObject((String) device.get("action"));
+//                    swtDeviceId.add(String.valueOf(device.get("deviceId")));
+//                    ctrl.add(String.valueOf(device.get("port")));
+//                    onOff.add(String.valueOf(pow == 0 ? 1 : 0));
+//                    time.add(action.getString("time"));
+
+                    Map cmd = new HashMap();
+                    cmd.put("CMD", 21);
+                    Integer[] ctrlArr = new Integer[5];
+                    Integer[] timeArr = new Integer[5];
+                    for(int i=0; i<5; i++){
+                        if( i != Integer.valueOf(String.valueOf(device.get("port")))-1 ){
+                            ctrlArr[i] = -1;
+                            timeArr[i] = -1;
+                        }else{
+                            ctrlArr[i] = power == 0 ? 1 : 0;
+                            timeArr[i] = Integer.valueOf(action.getString("time"));
+                        }
+                    }
+                    cmd.put("CTRL", ctrlArr);
+                    cmd.put("TIME", timeArr);
+
+                    map.put("topicName", TopicNameUtil.cmdSet(Long.valueOf(String.valueOf(device.get("productId"))), Long.valueOf(String.valueOf(device.get("deviceId")))));
+                    map.put("topicContent", cmd);
+
+                    action.put("onOff", String.valueOf(power));
+                    GovDevice updateDevice = new GovDevice();
+                    updateDevice.setId((Integer) device.get("dId"));
+                    updateDevice.setAction(action.toString());
+                    //                updateDevice.setStatus(pow==0?1:0);
+                    updateDevice.setActionTime(new Date());
+                    devices.add(updateDevice);
+
+                    //添加操作日志
+                    govOperationLogService.insertLog(Long.valueOf(device.get("deviceId")+""),Long.parseLong(device.get("productId")+""),device.get(
+                            "name")+"",
+                            device.get("port")+"",
+                            action.toString());
+                }
+            }else if( CommonConst.DEVICE_TYPE_AC.equals(deviceType) ){
+                JSONObject action = JSONObject.parseObject((String) device.get("action"));
+//                acDeviceId.add(String.valueOf(device.get("deviceId")));
+//                power.add(String.valueOf(pow));
+//                mode.add(action.getString("mode"));
+//                temp.add(String.valueOf(Integer.valueOf(action.getString("temp")) - 14));
+//                windSpeed.add(String.valueOf("0"));
+
+                Integer categoryID = Constants.CategoryID.AIR_CONDITIONER.getValue();
+                Integer BinaryType = Constants.BinaryType.TYPE_HEXDECIMAL.getValue();
+                String fileName = "irda_"+device.get("fileName")+".bin";
+                Integer keyCode = 0;
+                ACStatus acStatus = new ACStatus(
+                        power,
+                        Integer.valueOf(action.getString("mode")),
+                        Integer.valueOf(action.getString("temp"))-16,
+                        Integer.valueOf(action.getString("windSpeed")),
+                        0,
+                        0,
+                        0,
+                        0
+                );
+                Integer acSwing = 0;
+                Integer ver = CommandIdUtil.commandId(Long.valueOf(String.valueOf(device.get("deviceId"))));
+
+                String irContent = IRDecode.decode(
+                        categoryID,
+                        BinaryType,
+                        fileName,
+                        keyCode,
+                        acStatus,
+                        acSwing,
+                        ver
+                );
+                log.info(irContent);
+
+                map.put("topicName", TopicNameUtil.cmdSet(Long.valueOf(String.valueOf(device.get("productId"))), Long.valueOf(String.valueOf(device.get("deviceId")))));
+                map.put("topicContent", irContent);
+
+                action.put("onOff", String.valueOf(power));
+                GovDevice updateDevice = new GovDevice();
+                updateDevice.setId((Integer) device.get("dId"));
+                updateDevice.setAction(action.toString());
+                updateDevice.setStatus(power == 0 ? 1 : 0);
+                updateDevice.setActionTime(new Date());
+                devices.add(updateDevice);
+
+                //添加操作日志
+                govOperationLogService.insertLog(Long.valueOf(device.get("deviceId")+""),Long.parseLong(device.get("productId")+""),device.get(
+                        "name")+"",
+                        device.get("port")+"",
+                        action.toString());
+            }
+        }
+        if( map.size() > 0 ){
+            CallbackThread.add(CommonConst.URL_CMD, map);
+        }
+        if( devices.size() > 0 ){
+            deviceService.updateBatchByIdPort(devices);
+        }
+        return ReturnBean.ok();
+    }
+}

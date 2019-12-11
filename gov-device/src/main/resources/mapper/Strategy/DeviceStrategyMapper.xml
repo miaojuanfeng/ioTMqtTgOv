@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.strategy.mapper.DeviceStrategyMapper">
+
+    <sql id="Base_Column_List">
+        id,strategy_type_code,strategy_type_name,area,running_time,week,is_holiday,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询设备动作策略列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.strategy.entity.DeviceStrategy">
+        select *
+        from gov_device_strategy where 1=1
+        <if test="strategyTypeName != null and strategyTypeName != ''">
+            and strategy_type_name like '%${strategyTypeName}%'
+        </if>
+        <if test="strategyTypeCode != null and strategyTypeCode != ''">
+            and strategy_type_code = #{strategyTypeCode}
+        </if>
+        <if test="status != null and status != ''">
+            and status = #{status}
+        </if>
+        <if test="area !=null and area!=''">
+            and area = #{area}
+        </if>
+        order by id desc
+    </select>
+
+    <!-- 带参数查询设备动作策略列表 -->
+    <select id="selectStrategyPage" resultType="com.krt.gov.strategy.entity.DeviceStrategy">
+        select *
+        from gov_device_strategy where 1=1 and strategy_type_code !=1
+        <if test="area !=null and area!=''">
+            and area = #{area}
+        </if>
+        order by id desc
+    </select>
+
+    <!-- 带参数查询设备动作策略列表 -->
+    <select id="selectManualStrategy" resultType="java.util.Map">
+        select
+          gds.*,
+          (select count(id) from gov_device_strategy_link gdsl where gdsl.strategy_id = gds.id) as num
+        from gov_device_strategy gds
+        where gds.strategy_type_code = 1 and gds.area=#{area} group by gds.id
+        order by gds.insert_time desc
+    </select>
+
+    <!-- 带参数查询设备动作策略列表 -->
+    <select id="selectManualDevice" resultType="java.util.Map">
+        select gdsl.*, gd.*, gd.id as dId, gd.name as device_name, gd.product_id as productId, gd.device_id as deviceId, gd.status as device_status, gd.action as device_action, gd.action_time as device_action_time
+        from gov_device_strategy_link gdsl
+        inner join gov_device gd on gdsl.device_id = gd.id
+        where gdsl.strategy_id = #{strategyId}
+        order by gdsl.insert_time asc
+    </select>
+</mapper>
+

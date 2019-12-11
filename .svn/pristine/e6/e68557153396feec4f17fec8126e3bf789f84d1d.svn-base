@@ -1,0 +1,360 @@
+package com.krt.gov.warning.controller;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.krt.common.annotation.KrtLog;
+import com.krt.common.base.BaseController;
+import com.krt.common.bean.DataTable;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.session.SessionUser;
+import com.krt.common.util.ShiroUtils;
+import com.krt.gov.device.service.IGovDeviceService;
+import com.krt.gov.warning.entity.GovDeviceWarning;
+import com.krt.gov.warning.entity.GovDeviceWarningLink;
+import com.krt.gov.warning.entity.GovDeviceWarningStaff;
+import com.krt.gov.warning.entity.GovDeviceWarningTime;
+import com.krt.gov.warning.service.IGovDeviceWarningLinkService;
+import com.krt.gov.warning.service.IGovDeviceWarningService;
+import com.krt.gov.warning.service.IGovDeviceWarningStaffService;
+import com.krt.gov.warning.service.IGovDeviceWarningTimeService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.validation.constraints.NotNull;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 设备预警设置控制层
+ *
+ * @author 郭明德
+ * @version 1.0
+ * @date 2019年07月10日
+ */
+@Controller
+public class GovDeviceWarningController extends BaseController {
+
+    @Autowired
+    private IGovDeviceWarningService govDeviceWarningService;
+
+    @Autowired
+    private IGovDeviceWarningStaffService govDeviceWarningStaffService;
+
+    @Autowired
+    private IGovDeviceWarningLinkService govDeviceWarningLinkService;
+
+    @Autowired
+    private IGovDeviceWarningTimeService govDeviceWarningTimeService;
+
+    @Autowired
+    private IGovDeviceService govDeviceService;
+
+    /**
+     * 设备预警设置管理页
+     */
+    @RequiresPermissions("warnRule:govDeviceWarning:list")
+    @GetMapping("gov/warning/govDeviceWarning/list")
+    public String list() {
+        return "gov/warning/govDeviceWarning/list";
+    }
+
+    /**
+     * 设备预警设置管理
+     *
+     * @param para 搜索参数
+     */
+    @RequiresPermissions("warnRule:govDeviceWarning:list")
+    @PostMapping("gov/warning/govDeviceWarning/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+
+        if (sessionUser.isAdmin()) {
+            IPage page = govDeviceWarningService.selectPageList(para);
+            return DataTable.ok(page);
+        } else {
+            para.put("area", sessionUser.getArea());
+            IPage page = govDeviceWarningService.selectPageList(para);
+            return DataTable.ok(page);
+        }
+    }
+
+    /**
+     * 选择新增预警类型
+     */
+    @RequiresPermissions("warnRule:govDeviceWarning:insert")
+    @GetMapping("gov/warning/govDeviceWarning/chooseAttrType")
+    public String selectAttrType() {
+        return "gov/warning/govDeviceWarning/chooseAttrType";
+    }
+
+    /**
+     * 新增设备预警设置页
+     */
+    @RequiresPermissions("warnRule:govDeviceWarning:insert")
+    @GetMapping("gov/warning/govDeviceWarning/insert")
+    public String insert(String attrTypeCode) {
+        switch (attrTypeCode) {
+            case "air_conditioner":
+                return "gov/warning/govDeviceWarning/air_conditioner/insert";
+            case "switch":
+                return "gov/warning/govDeviceWarning/switch/insert";
+            default:
+                return "gov/warning/govDeviceWarning/switch/insert";
+        }
+    }
+
+    /**
+     * 添加设备预警设置
+     *
+     * @param govDeviceWarning 设备预警设置
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加设备预警设置")
+    @RequiresPermissions("warnRule:govDeviceWarning:insert")
+    @PostMapping("gov/warning/govDeviceWarning/insert")
+    @ResponseBody
+    public ReturnBean insert(GovDeviceWarning govDeviceWarning) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+
+        if (sessionUser.isAdmin()) {
+            //添加预警规则并返回主键id
+            govDeviceWarningService.insert(govDeviceWarning);
+        } else {
+            govDeviceWarning.setArea(sessionUser.getArea());
+            //添加预警规则并返回主键id
+            govDeviceWarningService.insert(govDeviceWarning);
+        }
+
+        //添加预警推送人
+        if (!"".equals(govDeviceWarning.getPushManJsonStr())) {
+            JSONArray pushManJsonArray = JSON.parseArray(govDeviceWarning.getPushManJsonStr());
+            List<GovDeviceWarningStaff> govDeviceWarningStaffs = JSONObject.parseArray(pushManJsonArray.toJSONString(), GovDeviceWarningStaff.class);
+            for (GovDeviceWarningStaff govDeviceWarningStaff :
+                    govDeviceWarningStaffs) {
+                govDeviceWarningStaff.setWarningId(govDeviceWarning.getId());
+                govDeviceWarningStaffService.insert(govDeviceWarningStaff);
+            }
+        }
+        //添加预警关联设备
+        if (!"".equals(govDeviceWarning.getLinkDeviceJsonStr())) {
+            JSONArray linkDeviceJsonArray = JSON.parseArray(govDeviceWarning.getLinkDeviceJsonStr());
+            List<GovDeviceWarningLink> GovDeviceWarningLinks = JSONObject.parseArray(linkDeviceJsonArray.toJSONString(), GovDeviceWarningLink.class);
+            for (GovDeviceWarningLink govDeviceWarningLink :
+                    GovDeviceWarningLinks) {
+                govDeviceWarningLink.setWarningId(govDeviceWarning.getId());
+                govDeviceWarningLinkService.insert(govDeviceWarningLink);
+            }
+        }
+
+        //添加预警时间
+        if (!"".equals(govDeviceWarning.getTimeJsonStr())) {
+            JSONArray timeJsonArray = JSON.parseArray(govDeviceWarning.getTimeJsonStr());
+            List<GovDeviceWarningTime> govDeviceWarningTimes = JSONObject.parseArray(timeJsonArray.toJSONString(), GovDeviceWarningTime.class);
+            for (GovDeviceWarningTime govDeviceWarningTime :
+                    govDeviceWarningTimes) {
+                govDeviceWarningTime.setWarningId(govDeviceWarning.getId());
+                govDeviceWarningTimeService.insert(govDeviceWarningTime);
+            }
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改设备预警设置页
+     *
+     * @param id 设备预警设置id
+     * @return {@link String}
+     */
+    @RequiresPermissions("warnRule:govDeviceWarning:update")
+    @GetMapping("gov/warning/govDeviceWarning/update")
+    public String update(Integer id) {
+        GovDeviceWarning govDevWarn = govDeviceWarningService.selectAllById(id);
+
+        //获取预警关联推送人、关联设备信息
+        List<GovDeviceWarningStaff> govDeviceWarningStaffs = govDeviceWarningStaffService.selectByWarnId(id);
+        JSONArray jsonArray = JSONArray.parseArray(JSON.toJSONString(govDeviceWarningStaffs));
+        govDevWarn.setPushManJsonStr(jsonArray.toJSONString());
+        List<GovDeviceWarningLink> govDeviceWarningLinks = govDeviceWarningLinkService.selectByWarnId(id);
+        JSONArray jsonArray1 = JSONArray.parseArray(JSON.toJSONString(govDeviceWarningLinks));
+        govDevWarn.setLinkDeviceJsonStr(jsonArray1.toJSONString());
+
+        request.setAttribute("govDevWarn", govDevWarn);
+
+        //获取预警时间
+        List<Map> govTimes = govDeviceWarningService.selectTimeByWarnId(id.toString());
+        request.setAttribute("govTimes", govTimes);
+
+        //判断预警类型返回对应页面
+        if ("air_conditioner".equals(govDevWarn.getAttrTypeCode())) {
+            return "gov/warning/govDeviceWarning/air_conditioner/update";
+        } else {
+            return "gov/warning/govDeviceWarning/switch/update";
+        }
+    }
+
+    /**
+     * 修改设备预警设置
+     *
+     * @param govDeviceWarning 设备预警设置
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改设备预警设置")
+    @RequiresPermissions("warnRule:govDeviceWarning:update")
+    @PostMapping("gov/warning/govDeviceWarning/update")
+    @ResponseBody
+    public ReturnBean update(GovDeviceWarning govDeviceWarning) {
+        govDeviceWarningService.updateById(govDeviceWarning);
+
+        //删除该预警的所有推送人、关联设备和预警时间
+        govDeviceWarningStaffService.deleteByWarnId(govDeviceWarning.getId());
+        govDeviceWarningLinkService.deleteByWarnId(govDeviceWarning.getId());
+        govDeviceWarningTimeService.deleteByWarnId(govDeviceWarning.getId());
+
+        //添加预警推送人
+        if (!"".equals(govDeviceWarning.getPushManJsonStr())) {
+            JSONArray pushManJsonArray = JSON.parseArray(govDeviceWarning.getPushManJsonStr());
+            List<GovDeviceWarningStaff> govDeviceWarningStaffs = JSONObject.parseArray(pushManJsonArray.toJSONString(), GovDeviceWarningStaff.class);
+            for (GovDeviceWarningStaff govDeviceWarningStaff :
+                    govDeviceWarningStaffs) {
+                govDeviceWarningStaff.setWarningId(govDeviceWarning.getId());
+                govDeviceWarningStaffService.insert(govDeviceWarningStaff);
+            }
+        }
+        //添加预警关联设备
+        if (!"".equals(govDeviceWarning.getLinkDeviceJsonStr())) {
+            JSONArray linkDeviceJsonArray = JSON.parseArray(govDeviceWarning.getLinkDeviceJsonStr());
+            List<GovDeviceWarningLink> GovDeviceWarningLinks = JSONObject.parseArray(linkDeviceJsonArray.toJSONString(), GovDeviceWarningLink.class);
+            for (GovDeviceWarningLink govDeviceWarningLink :
+                    GovDeviceWarningLinks) {
+                govDeviceWarningLink.setWarningId(govDeviceWarning.getId());
+                govDeviceWarningLinkService.insert(govDeviceWarningLink);
+            }
+        }
+        //添加预警时间
+        if (!"".equals(govDeviceWarning.getTimeJsonStr())) {
+            JSONArray timeJsonArray = JSON.parseArray(govDeviceWarning.getTimeJsonStr());
+            List<GovDeviceWarningTime> GovDeviceWarningTimes = JSONObject.parseArray(timeJsonArray.toJSONString(), GovDeviceWarningTime.class);
+            for (GovDeviceWarningTime govDeviceWarningTime :
+                    GovDeviceWarningTimes) {
+                govDeviceWarningTime.setWarningId(govDeviceWarning.getId());
+                govDeviceWarningTimeService.insert(govDeviceWarningTime);
+            }
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 查看设备预警设置页
+     *
+     * @param id 设备预警id
+     * @return {@link String}
+     */
+    @RequiresPermissions("warnRule:govDeviceWarning:see")
+    @GetMapping("gov/warning/govDeviceWarning/see")
+    public String see(Integer id) {
+        GovDeviceWarning govDevWarn = govDeviceWarningService.selectAllById(id);
+
+        //获取预警关联推送人和关联设备信息
+        List<GovDeviceWarningStaff> govDeviceWarningStaffs = govDeviceWarningStaffService.selectByWarnId(id);
+        JSONArray jsonArray = JSONArray.parseArray(JSON.toJSONString(govDeviceWarningStaffs));
+        govDevWarn.setPushManJsonStr(jsonArray.toJSONString());
+        List<GovDeviceWarningLink> govDeviceWarningLinks = govDeviceWarningLinkService.selectByWarnId(id);
+        JSONArray jsonArray1 = JSONArray.parseArray(JSON.toJSONString(govDeviceWarningLinks));
+        govDevWarn.setLinkDeviceJsonStr(jsonArray1.toJSONString());
+
+        request.setAttribute("govDevWarn", govDevWarn);
+
+        //获取预警时间
+        List<Map> govTimes = govDeviceWarningService.selectTimeByWarnId(id.toString());
+        request.setAttribute("govTimes", govTimes);
+
+        //判断预警类型返回对应页面
+        if ("air_conditioner".equals(govDevWarn.getAttrTypeCode())) {
+            return "gov/warning/govDeviceWarning/air_conditioner/see";
+        } else {
+            return "gov/warning/govDeviceWarning/switch/see";
+        }
+    }
+
+    /**
+     * 设备预警启用禁用设置
+     *
+     * @param id 设备预警设置id
+     */
+    @KrtLog("设备预警启用禁用设置")
+    @RequiresPermissions("warnRule:govDeviceWarning:status")
+    @PostMapping("gov/warning/govDeviceWarning/status")
+    @ResponseBody
+    public ReturnBean status(@NotNull String status, @NotNull String id) {
+        govDeviceWarningService.updateStatusById(status, id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除设备预警设置
+     *
+     * @param id 设备预警设置id
+     */
+    @KrtLog("删除设备预警设置")
+    @RequiresPermissions("warnRule:govDeviceWarning:delete")
+    @PostMapping("gov/warning/govDeviceWarning/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        govDeviceWarningService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除设备预警设置
+     *
+     * @param ids 设备预警设置ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除设备预警设置")
+    @RequiresPermissions("warnRule:govDeviceWarning:delete")
+    @PostMapping("gov/warning/govDeviceWarning/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        govDeviceWarningService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 关联设备管理页
+     */
+    @GetMapping("gov/warning/govDevice/list")
+    public String device(Integer type) {
+        request.setAttribute("type", type);
+        return "gov/warning/govDevice/list";
+    }
+
+    /**
+     * 关联设备管理页
+     *
+     * @param para 搜索参数
+     */
+    @PostMapping("gov/warning/govDevice/list")
+    @ResponseBody
+    public DataTable device(@RequestParam Map para) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+
+        if (sessionUser.isAdmin()) {
+            IPage page = govDeviceService.selectPageList(para);
+            return DataTable.ok(page);
+        } else {
+            para.put("area", sessionUser.getArea());
+            IPage page = govDeviceService.selectPageList(para);
+            return DataTable.ok(page);
+        }
+    }
+
+}

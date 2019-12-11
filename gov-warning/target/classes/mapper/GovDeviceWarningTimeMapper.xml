@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.warning.mapper.GovDeviceWarningTimeMapper">
+
+    <sql id="Base_Column_List">
+        id,warning_id,s_time,f_time,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询设备预警时间设置列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.warning.entity.GovDeviceWarningTime">
+        select
+            <include refid="Base_Column_List"/>
+        from gov_device_warning_time where 1=1
+            <if test="id !=null and id!=''">
+            </if>
+            <if test="warningId !=null and warningId!=''">
+            </if>
+            <if test="sTime !=null and sTime!=''">
+            </if>
+            <if test="fTime !=null and fTime!=''">
+            </if>
+    </select>
+
+    <!--删除一条预警时间段-->
+    <delete id="deleteTimeByWarnId" parameterType="java.lang.String">
+        delete from gov_device_warning_time
+        where warning_id = #{warnId} and s_time = #{sTime} and f_time = #{fTime}
+    </delete>
+
+    <!--删除一条预警时间段-->
+    <delete id="deleteByWarnId" parameterType="java.lang.Integer">
+        delete from gov_device_warning_time
+        where warning_id = #{warnId}
+    </delete>
+
+    <!--根据warnId查找预警时间段-->
+    <select id="selectTimeByWarnId" resultType="com.krt.gov.warning.entity.GovDeviceWarningTime">
+        select id, warning_id, s_time, f_time
+        from gov_device_warning_time where warning_id = #{warnId}
+    </select>
+</mapper>
+

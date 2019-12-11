@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.krt.gov.device.mapper.GovDeviceMapper">
+
+    <sql id="Base_Column_List">
+        id,device_id,product_id,name,type,`group`,port,area,hall_id,brand_name,file_name,info,dis_percent,dis_full,dis_empty,machine,action,status,x,y,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询设备列表 -->
+    <select id="selectPageList" resultType="com.krt.gov.device.entity.GovDevice">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_device where 1=1
+        <if test="name !=null and name!=''">
+            and name like concat('%',#{name},'%')
+        </if>
+        <if test="type !=null and type!=''">
+            and type like concat('%',#{type},'%')
+        </if>
+        <if test="area !=null and area!=''">
+            and area = #{area}
+        </if>
+    </select>
+
+    <!-- 根据设备id 获取设备的区域位置信息 -->
+    <select id="selectDevPosition" parameterType="integer" resultType="map">
+        select x, y from gov_device where id = #{id}
+    </select>
+
+    <!-- 设置设备的区域位置坐标-->
+    <update id="updateDevPosition">
+        UPDATE gov_device SET x = #{x}, y = #{y} WHERE id = #{id}
+    </update>
+
+    <!-- 设置设备的区域位置坐标-->
+    <update id="updateStateByDeviceId">
+        UPDATE gov_device SET state = #{state} WHERE device_id = #{deviceId}
+    </update>
+
+    <!-- 设置设备的区域位置坐标-->
+    <update id="updateStatusByDeviceId">
+        UPDATE gov_device SET status = (
+        CASE port WHEN 1 THEN #{port1}
+                  WHEN 2 THEN #{port2}
+                  WHEN 3 THEN #{port3}
+                  WHEN 4 THEN #{port4}
+                  WHEN 5 THEN #{port5}
+        END)
+        WHERE status != 2 and device_id = #{deviceId}
+    </update>
+
+    <!-- 设置设备的区域位置坐标-->
+    <update id="updateDataByDeviceId">
+        UPDATE gov_device SET data = #{data} WHERE device_id = #{deviceId,jdbcType=BIGINT}
+    </update>
+
+    <update id="offLineAllDevice">
+        update gov_device
+        set state = 0
+        where state = 2
+    </update>
+
+    <select id="listDevicesByHallId" resultType="java.util.Map">
+        select gd.id,gd.name,gd.status,gd.action,gg.icon,gg.group_name
+        from gov_device gd
+        left join gov_group gg on gg.id=gd.`group`
+        where gd.area = #{area} and gd.hall_id=#{hallId}
+        <if test="status !=null and status != ''">
+            and gd.status = #{status}
+        </if>
+        <if test="groupId !=null and groupId != ''">
+            and gd.`group` = #{groupId}
+        </if>
+    </select>
+
+    <!--设备布局接口查询设备状态-->
+    <select id="selectDeviceStatus" resultType="java.util.Map">
+        SELECT
+        COUNT(id) AS total,
+        SUM(`status`=1) AS opened,
+        SUM(`status`=0) AS closed,
+        SUM(`status`=2) AS earlyWarning
+        FROM gov_device WHERE area=#{area}
+        <if test="hallId != null and hallId != ''">
+            AND hall_id=#{hallId}
+        </if>
+    </select>
+
+    <!--设备布局接口查询所有设备-->
+    <select id="selectAllDevices" resultType="java.util.Map">
+        SELECT gd.id,gd.name,gd.status,gd.action,gd.type,gd.data,gd.x AS xaxis,gd.y AS yaxis,gg.group_name,gg.icon
+        FROM gov_device gd
+        INNER JOIN gov_group gg ON gd.`group`=gg.id
+        WHERE gd.area=#{area} and gd.hall_id=#{hallId}
+    </select>
+
+    <!--根据设备id查询设备详情信息-->
+    <select id="selectDeviceById" resultType="java.util.Map">
+        SELECT * FROM gov_device
+        WHERE id=#{id}
+    </select>
+
+    <update id="updateBatchByIdPort" parameterType="java.util.List">
+        update gov_device
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="action =case" suffix="end,">
+                <foreach collection="list" item="device">
+                    <if test="device.action!=null">
+                        when id=#{device.id} then #{device.action}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="action_time =case" suffix="end,">
+                <foreach collection="list" item="device">
+                    <if test="device.actionTime!=null">
+                        when id=#{device.id} then #{device.actionTime}
+                    </if>
+                </foreach>
+            </trim>
+            <trim prefix="status =case" suffix="end,">
+                <foreach collection="list" item="device">
+                    <if test="device.status!=null">
+                        when id=#{device.id} then #{device.status}
+                    </if>
+                </foreach>
+            </trim>
+        </trim>
+        <where>
+            <foreach collection="list" separator="or" item="device">
+                id = #{device.id}
+            </foreach>
+        </where>
+    </update>
+
+    <!--根据deviceId查找开关以外的设备的id-->
+    <select id="selectByDeviceIdAndType" resultType="java.lang.Integer">
+        select id
+        from gov_device where device_id=#{deviceId} and type!=1
+    </select>
+
+    <select id="selectByDeviceId" resultType="com.krt.gov.device.entity.GovDevice">
+        select
+        <include refid="Base_Column_List"/>
+        from gov_device where device_id=#{deviceId}
+    </select>
+
+    <select id="selectSwitchId" resultType="java.lang.Integer">
+        select id
+        from gov_device where device_id=#{deviceId} and port=#{port} and type=1
+    </select>
+
+    <select id="getWarningDeviceIdByTH" resultType="java.lang.Integer">
+        SELECT gd.id FROM gov_device gd
+        LEFT JOIN gov_device_warning_link gdwl ON gdwl.device_id=gd.id
+        LEFT JOIN gov_device_warning gdw ON gdwl.warning_id=gdw.id
+        WHERE gd.device_id=#{deviceId} AND gd.type=2 AND gdw.`status`=1
+        AND(gdw.temp_l > #{temp} OR #{temp} > gdw.temp_h OR gdw.humi_l &gt; #{humi} OR #{humi} > gdw.humi_h)
+        GROUP BY gd.id
+    </select>
+
+    <select id="getWarningSwitchId" resultType="java.lang.Integer">
+         SELECT gd.id FROM gov_device gd
+         LEFT JOIN gov_device_warning_link gdwl ON gdwl.device_id=gd.id
+         LEFT JOIN gov_device_warning gdw ON gdwl.warning_id=gdw.id
+         WHERE gd.device_id=#{deviceId} AND gd.type=1 AND gdw.`status`=1
+         AND ((gd.`port`=1 AND gdw.power=#{port1})
+         or (gd.`port`=2 AND gdw.power=#{port2})
+         or (gd.`port`=3 AND gdw.power=#{port3})
+         or (gd.`port`=4 AND gdw.power=#{port4})
+         or (gd.`port`=5 AND gdw.power=#{port5}))
+         GROUP BY gd.id
+    </select>
+
+    <update id="updateStatus">
+        update gov_device
+        set `status`=#{status}
+        where id = #{id}
+    </update>
+
+    <select id="selectSwitchIdOnWarning" resultType="java.lang.Integer">
+        SELECT gd.id FROM gov_device gd
+        LEFT JOIN gov_device_warning_link gdwl ON gdwl.device_id=gd.id
+        LEFT JOIN gov_device_warning gdw ON gdwl.warning_id=gdw.id
+        WHERE gd.device_id=#{deviceId} AND gd.type=1 AND gdw.`status`=1
+				GROUP BY gd.id
+    </select>
+
+    <!-- 根据设备类型和品牌选择码库-->
+    <select id="selectCodeBank" resultType="java.util.Map">
+        select * from remote_index
+        where category_id = 1 and status = 1
+        <if test="brandName !=null and brandName!=''">
+            and brand_name like concat('%',#{brandName},'%')
+        </if>
+        <if test="remoteMap !=null and remoteMap!=''">
+            and remote_map like concat('%',#{remoteMap},'%')
+        </if>
+    </select>
+
+    <update id="emptyPaperInitialization">
+        update gov_device
+        set dis_empty=#{disEmpty}
+        where id = #{id}
+    </update>
+
+    <update id="fullPaperInitialization">
+        update gov_device
+        set dis_full=#{disFull}
+        where id = #{id}
+    </update>
+
+    <update id="resetPaperInitialization">
+        update gov_device
+        set dis_full=null ,dis_empty=null
+        where id = #{id}
+    </update>
+
+    <select id="getData" resultType="string">
+        select data from gov_device
+        where id=#{id}
+    </select>
+
+    <select id="getPrinterInfo" resultType="com.krt.gov.device.entity.GovDevice">
+        select dis_empty,dis_full,dis_percent,data from gov_device
+        where id=#{id}
+    </select>
+
+    <!--根据打印机唯一标识和设备id更新指定打印机设备的data数据-->
+    <update id="updatePrinterInfo">
+        update gov_device
+        set data=#{data}
+        where machine=#{machine} and device_id=#{deviceId}
+    </update>
+
+    <select id="getPrinterByMachineAndDeviceId" resultType="com.krt.gov.device.entity.GovDevice">
+        select id,dis_empty,dis_full,dis_percent,data from gov_device
+        where device_id=#{deviceId} and machine=#{machine}
+    </select>
+
+    <select id="listDevicesByGroupId" resultType="com.krt.gov.device.entity.GovDevice">
+        select id,device_id,name,port
+        from gov_device
+        where `group`=#{groupId}
+        <if test="area!=null and area!=''">
+            and area=#{area}
+        </if>
+    </select>
+</mapper>
+

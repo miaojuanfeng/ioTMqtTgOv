@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/gov-common" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/gov-device" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/gov-ir" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/gov-strategy" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/gov-warning" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-api" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-common" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-framework" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-gen" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-monitor" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-activemq" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-captcha" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-ehcache" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-file" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-jpush" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-lucene" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-mail" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-oauth2" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-quartz" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-redis" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-plugins/krt-plugin-websocket" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-sys" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/krt-web" charset="UTF-8" />
+  </component>
+</project>

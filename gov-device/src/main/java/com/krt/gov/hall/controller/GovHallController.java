@@ -1,0 +1,197 @@
+package com.krt.gov.hall.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.krt.common.annotation.KrtLog;
+import com.krt.common.base.BaseController;
+import com.krt.common.bean.DataTable;
+import com.krt.common.bean.ReturnBean;
+import com.krt.common.session.SessionUser;
+import com.krt.common.util.ShiroUtils;
+import com.krt.gov.hall.entity.GovHall;
+import com.krt.gov.hall.service.IGovHallService;
+import com.krt.sys.entity.Region;
+import com.krt.sys.service.IRegionService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static com.krt.gov.hall.constants.Constant.FLOOR_NUM_CODE;
+
+/**
+ * 大厅控制层
+ *
+ * @author 刘威
+ * @version 1.0
+ * @date 2019年10月11日
+ */
+@Controller
+public class GovHallController extends BaseController {
+
+    @Autowired
+    private IGovHallService govHallService;
+
+    @Autowired
+    private IRegionService regionService;
+
+    /**
+     * 大厅管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovHall:govHall:list")
+    @GetMapping("gov/hall/govHall/list")
+    public String list() {
+        return "gov/hall/govHall/list";
+    }
+
+    /**
+     * 大厅管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("GovHall:govHall:list")
+    @PostMapping("gov/hall/govHall/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+        para.put("area", sessionUser.getArea());
+        IPage page = govHallService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增大厅页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovHall:govHall:insert")
+    @GetMapping("gov/hall/govHall/insert")
+    public String insert() {
+        //获取数据字典信息
+        List hallList = govHallService.getFloorInfo(FLOOR_NUM_CODE);
+        request.setAttribute("hallList", hallList);
+
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+        if (sessionUser.isAdmin()) {
+            //获取地区大厅
+            List<Region> provinces = regionService.selectByPid(0);
+            request.setAttribute("provinces", provinces);
+            List<Region> cities = regionService.selectByPid(10014);
+            request.setAttribute("cities", cities);
+            List<Region> regions = regionService.selectByPid(1425);
+            request.setAttribute("regions", regions);
+        }
+
+        return "gov/hall/govHall/insert";
+    }
+
+    /**
+     * 添加大厅
+     *
+     * @param govHall 大厅
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加大厅")
+    @RequiresPermissions("GovHall:govHall:insert")
+    @PostMapping("gov/hall/govHall/insert")
+    @ResponseBody
+    public ReturnBean insert(GovHall govHall) {
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+        if (!sessionUser.isAdmin()) {
+            govHall.setArea(sessionUser.getArea());
+        }
+        govHallService.insert(govHall);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改大厅页
+     *
+     * @param id 大厅id
+     * @return {@link String}
+     */
+    @RequiresPermissions("GovHall:govHall:update")
+    @GetMapping("gov/hall/govHall/update")
+    public String update(Integer id) {
+        GovHall govHall = govHallService.selectById(id);
+        request.setAttribute("govHall", govHall);
+        //获取数据字典信息
+        List hallList = govHallService.getFloorInfo(FLOOR_NUM_CODE);
+        request.setAttribute("hallList", hallList);
+
+        SessionUser sessionUser = ShiroUtils.getSessionUser();
+        if (sessionUser.isAdmin()) {
+            //获取地域
+            List<Region> provinces = regionService.selectByPid(0);
+            request.setAttribute("provinces", provinces);
+            List<Region> cities = regionService.getCity(govHall.getArea());
+            request.setAttribute("cities", cities);
+            List<Region> regions = regionService.getRegion(govHall.getArea());
+            request.setAttribute("regions", regions);
+        }
+        return "gov/hall/govHall/update";
+    }
+
+    /**
+     * 修改大厅
+     *
+     * @param govHall 大厅
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改大厅")
+    @RequiresPermissions("GovHall:govHall:update")
+    @PostMapping("gov/hall/govHall/update")
+    @ResponseBody
+    public ReturnBean update(GovHall govHall) {
+        govHallService.updateById(govHall);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除大厅
+     *
+     * @param id 大厅id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除大厅")
+    @RequiresPermissions("GovHall:govHall:delete")
+    @PostMapping("gov/hall/govHall/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        govHallService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除大厅
+     *
+     * @param ids 大厅ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除大厅")
+    @RequiresPermissions("GovHall:govHall:delete")
+    @PostMapping("gov/hall/govHall/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        govHallService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    @GetMapping("gov/hall/govHall/getHallByArea")
+    @ResponseBody
+    public ReturnBean getHallByArea(String area) {
+        List<GovHall> govHallList = govHallService.selectByArea(area);
+        return ReturnBean.ok(govHallList);
+    }
+
+
+}
